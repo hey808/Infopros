@@ -68,8 +68,14 @@
   .detail-head input.title:focus{border-color:var(--accent)}
   .sub{color:var(--muted);margin:0 0 18px}
   /* two-column section layout on desktop */
+  #topSection{margin-bottom:16px}
   #sections{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
   @media(max-width:900px){#sections{grid-template-columns:1fr}}
+  .section.fullspan{grid-column:1/-1}
+  /* Onboarding split into two field columns */
+  .sbody.twocol{display:flex;gap:0 32px}
+  .sbody.twocol .col{flex:1;min-width:0}
+  @media(max-width:900px){.sbody.twocol{flex-direction:column;gap:0}}
   .section{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
   .section > .shead{display:flex;align-items:center;gap:12px;padding:14px 18px;cursor:pointer;user-select:none}
   .section > .shead h4{margin:0;font-size:14px;letter-spacing:.4px;text-transform:uppercase;color:var(--txt)}
@@ -153,6 +159,7 @@
       <span class="sub" id="detailPct" style="margin:0"></span>
     </div>
     <p class="sub" id="detailOffer"></p>
+    <div id="topSection"></div>
     <div class="notes-panel">
       <div class="nhead"><h4>📝 Notes</h4><span class="saved-tag" id="notesSaved"></span></div>
       <textarea id="notesArea" placeholder="Add notes about this client — context, blockers, reminders, call recaps…"></textarea>
@@ -358,79 +365,90 @@ function renderDetail(){
   notes.value=c.notes||"";
   document.getElementById("notesSaved").textContent= (c.notes&&c.notes.trim())?"":"";
   notes.oninput=e=>{ c.notes=e.target.value; save(); const tag=document.getElementById("notesSaved"); tag.textContent="Saved ✓"; clearTimeout(notes._t); notes._t=setTimeout(()=>tag.textContent="",1200); };
-  const wrap=document.getElementById("sections");
-  wrap.innerHTML="";
+  const top=document.getElementById("topSection"); top.innerHTML="";
+  const wrap=document.getElementById("sections"); wrap.innerHTML="";
+  // Client Deliverables: single full-width column, placed above the notes.
+  state.schema.forEach((sec,si)=>{ if(sec.section==="Client Deliverables" && sec.fields.length) top.appendChild(buildSection(sec,si,c)); });
+  // Remaining sections in the 2-column grid (original order; QC group banner before Funnel).
   let qcBannerAdded=false;
-  // Render order: Client Deliverables first, then the rest in their original order.
-  const ordered=state.schema.map((sec,si)=>({sec,si}))
-    .sort((a,b)=>(a.sec.section==="Client Deliverables"?-1:0)-(b.sec.section==="Client Deliverables"?-1:0));
-  ordered.forEach(({sec,si})=>{
-    if(!sec.fields.length)return;
-    const isQC=QC_SECTIONS.has(sec.section);
-    if(isQC && !qcBannerAdded){
+  state.schema.forEach((sec,si)=>{
+    if(!sec.fields.length || sec.section==="Client Deliverables") return;
+    if(QC_SECTIONS.has(sec.section) && !qcBannerAdded){
       const ban=document.createElement("div");
-      ban.className="qc-banner";
-      ban.textContent="Quality Control";
-      wrap.appendChild(ban);
-      qcBannerAdded=true;
+      ban.className="qc-banner"; ban.textContent="Quality Control";
+      wrap.appendChild(ban); qcBannerAdded=true;
     }
-    const sp=sectionProgress(c,sec);
-    const sEl=document.createElement("div");
-    sEl.className="section"+(isQC?" qc":"");
-    sEl.dataset.si=si;
-    const minibar= sp.total? `<div class="minibar"><div style="width:${Math.round(sp.done/sp.total*100)}%"></div></div>`:`<div class="grow"></div>`;
-    sEl.innerHTML=`
-      <div class="shead">
-        <h4>${esc(sec.section)}</h4>
-        ${isQC?'<span class="qc-badge">QC</span>':''}
-        <span class="scount">${sp.total?sp.done+"/"+sp.total:""}</span>
-        ${minibar}
-        <span class="chev">▾</span>
-      </div>
-      <div class="sbody"></div>`;
-    const body=sEl.querySelector(".sbody");
-    sec.fields.forEach(f=>{
-      const val=c.fields[f.name];
-      if(f.type==="bool"){
-        const lbl=document.createElement("label");
-        lbl.className="check";
-        lbl.innerHTML=`<input type="checkbox" ${val===true?"checked":""}><span class="box"></span><span class="ctext">${esc(f.name)}</span>`;
-        lbl.querySelector("input").onchange=e=>{
-          c.fields[f.name]=e.target.checked; save(); refreshProgress();
-          // reveal/hide any fields that depend on this checkbox
-          document.querySelectorAll('[data-dep-of="'+f.name+'"]').forEach(el=>el.classList.toggle("hidden",!e.target.checked));
-        };
-        body.appendChild(lbl);
-        return;
-      }
-      const fEl=document.createElement("div");
-      fEl.className="field";
-      const dep=DEPENDS[f.name];
-      if(dep){ fEl.dataset.depOf=dep; if(c.fields[dep]!==true) fEl.classList.add("hidden"); }
-      {
-        let valHtml;
-        if(isLink(val)){
-          valHtml=`<div class="fval linkish" style="display:flex;gap:8px;align-items:center">
-            <a href="${esc(val)}" target="_blank" rel="noopener">${esc(val)}</a>
-            <button class="btn btn-ghost editlink" style="padding:4px 8px">edit</button></div>`;
-        }else{
-          valHtml=`<div class="fval"><input class="text" value="${esc(val||"")}" placeholder="—"></div>`;
-        }
-        fEl.innerHTML=`<div class="fname">${esc(f.name)}</div>${valHtml}`;
-        const inp=fEl.querySelector("input.text");
-        if(inp){inp.onchange=e=>{
-          let v=e.target.value;
-          if(f.name===KEY_FIELDS.live){ const pd=parseLiveDate(v); if(pd.status==="scheduled"&&pd.display) v=pd.display; e.target.value=v; }
-          c.fields[f.name]=v; save(); flash();
-        };}
-        const eb=fEl.querySelector(".editlink");
-        if(eb)eb.onclick=()=>{const nv=prompt(f.name,val);if(nv!==null){c.fields[f.name]=nv;save();renderDetail();flash();}};
-      }
-      body.appendChild(fEl);
-    });
-    sEl.querySelector(".shead").onclick=e=>{if(e.target.closest("a"))return;sEl.classList.toggle("collapsed");};
-    wrap.appendChild(sEl);
+    wrap.appendChild(buildSection(sec,si,c));
   });
+}
+// Build a single field row (checkbox row or text-field row).
+function buildField(f,c){
+  const val=c.fields[f.name];
+  if(f.type==="bool"){
+    const lbl=document.createElement("label");
+    lbl.className="check";
+    lbl.innerHTML=`<input type="checkbox" ${val===true?"checked":""}><span class="box"></span><span class="ctext">${esc(f.name)}</span>`;
+    lbl.querySelector("input").onchange=e=>{
+      c.fields[f.name]=e.target.checked; save(); refreshProgress();
+      document.querySelectorAll('[data-dep-of="'+f.name+'"]').forEach(el=>el.classList.toggle("hidden",!e.target.checked));
+    };
+    return lbl;
+  }
+  const fEl=document.createElement("div");
+  fEl.className="field";
+  const dep=DEPENDS[f.name];
+  if(dep){ fEl.dataset.depOf=dep; if(c.fields[dep]!==true) fEl.classList.add("hidden"); }
+  let valHtml;
+  if(isLink(val)){
+    valHtml=`<div class="fval linkish" style="display:flex;gap:8px;align-items:center">
+      <a href="${esc(val)}" target="_blank" rel="noopener">${esc(val)}</a>
+      <button class="btn btn-ghost editlink" style="padding:4px 8px">edit</button></div>`;
+  }else{
+    valHtml=`<div class="fval"><input class="text" value="${esc(val||"")}" placeholder="—"></div>`;
+  }
+  fEl.innerHTML=`<div class="fname">${esc(f.name)}</div>${valHtml}`;
+  const inp=fEl.querySelector("input.text");
+  if(inp){inp.onchange=e=>{
+    let v=e.target.value;
+    if(f.name===KEY_FIELDS.live){ const pd=parseLiveDate(v); if(pd.status==="scheduled"&&pd.display) v=pd.display; e.target.value=v; }
+    c.fields[f.name]=v; save(); flash();
+  };}
+  const eb=fEl.querySelector(".editlink");
+  if(eb)eb.onclick=()=>{const nv=prompt(f.name,val);if(nv!==null){c.fields[f.name]=nv;save();renderDetail();flash();}};
+  return fEl;
+}
+// Build a full section card. Onboarding spans full width with a 2-column body split at "Email In GHL?".
+function buildSection(sec,si,c){
+  const isQC=QC_SECTIONS.has(sec.section);
+  const isOnboarding=sec.section==="Onboarding";
+  const sp=sectionProgress(c,sec);
+  const sEl=document.createElement("div");
+  sEl.className="section"+(isQC?" qc":"")+(isOnboarding?" fullspan":"");
+  sEl.dataset.si=si;
+  const minibar= sp.total? `<div class="minibar"><div style="width:${Math.round(sp.done/sp.total*100)}%"></div></div>`:`<div class="grow"></div>`;
+  sEl.innerHTML=`
+    <div class="shead">
+      <h4>${esc(sec.section)}</h4>
+      ${isQC?'<span class="qc-badge">QC</span>':''}
+      <span class="scount">${sp.total?sp.done+"/"+sp.total:""}</span>
+      ${minibar}
+      <span class="chev">▾</span>
+    </div>
+    <div class="sbody"></div>`;
+  const body=sEl.querySelector(".sbody");
+  if(isOnboarding){
+    body.classList.add("twocol");
+    const col1=document.createElement("div"); col1.className="col";
+    const col2=document.createElement("div"); col2.className="col";
+    let split=sec.fields.findIndex(f=>f.name==="Email In GHL?");
+    if(split<0) split=Math.ceil(sec.fields.length/2);
+    sec.fields.forEach((f,idx)=>{ (idx>=split?col2:col1).appendChild(buildField(f,c)); });
+    body.appendChild(col1); body.appendChild(col2);
+  }else{
+    sec.fields.forEach(f=>body.appendChild(buildField(f,c)));
+  }
+  sEl.querySelector(".shead").onclick=e=>{if(e.target.closest("a"))return;sEl.classList.toggle("collapsed");};
+  return sEl;
 }
 function flash(){toast("Saved");}
 // Update progress UI in place when a checkbox toggles (keeps scroll + expanded sections).
@@ -439,7 +457,7 @@ function refreshProgress(){
   const p=progress(c), s=statusOf(c);
   document.getElementById("detailPct").textContent=`${p.done}/${p.total} tasks · ${p.pct}%`;
   document.getElementById("detailPill").innerHTML=`<span class="pill ${s.cls}" style="position:static">${s.label}</span>`;
-  document.querySelectorAll("#sections .section").forEach(secEl=>{
+  document.querySelectorAll("#detailView .section").forEach(secEl=>{
     const sec=state.schema[+secEl.dataset.si]; if(!sec)return;
     const sp=sectionProgress(c,sec);
     const sc=secEl.querySelector(".scount"); if(sc) sc.textContent= sp.total? sp.done+"/"+sp.total : "";
