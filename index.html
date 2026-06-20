@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SProof — Client Launch Manager</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1d212b; --line:#2a2f3a;
+    --txt:#e8eaed; --muted:#9aa3b2; --accent:#5b8cff; --accent2:#3a6dff;
+    --green:#34d399; --greenbg:#10271f; --amber:#fbbf24; --red:#f87171;
+    --chip:#232834; --shadow:0 8px 30px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--txt);font-size:14px}
+  a{color:var(--accent)}
+  .hidden{display:none!important}
+  header{position:sticky;top:0;z-index:20;background:rgba(15,17,21,.9);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:14px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .brand{font-weight:700;font-size:17px;letter-spacing:.2px;display:flex;align-items:center;gap:10px}
+  .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent)}
+  .grow{flex:1}
+  .search{background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:9px 12px;border-radius:9px;width:240px;outline:none}
+  .search:focus{border-color:var(--accent)}
+  select.ctrl{background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:9px 12px;border-radius:9px;outline:none;font-family:inherit;font-size:13px;cursor:pointer}
+  select.ctrl:focus{border-color:var(--accent)}
+  .filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
+  .filters .lbl{color:var(--muted);font-size:12px}
+  .card .live{display:inline-flex;align-items:center;gap:6px;margin-top:10px;font-size:12px;font-weight:600;color:var(--txt);background:var(--chip);border:1px solid var(--line);padding:3px 10px;border-radius:20px}
+  .card .live.tbd{color:var(--amber);border-color:#3a3416}
+  .card .live.unset{color:var(--muted);font-weight:500;opacity:.7}
+  button{font-family:inherit;cursor:pointer;border:none;border-radius:9px;padding:9px 14px;font-size:13px;font-weight:600;transition:.15s}
+  .btn{background:var(--panel2);color:var(--txt);border:1px solid var(--line)}
+  .btn:hover{border-color:var(--accent);color:#fff}
+  .btn-primary{background:var(--accent2);color:#fff}
+  .btn-primary:hover{background:var(--accent)}
+  .btn-ghost{background:transparent;color:var(--muted);border:1px solid transparent}
+  .btn-ghost:hover{color:var(--txt);background:var(--panel2)}
+  .btn-danger{background:transparent;color:var(--red);border:1px solid var(--line)}
+  .btn-danger:hover{background:#2a1a1d;border-color:var(--red)}
+  main{padding:22px;max-width:1400px;margin:0 auto}
+
+  /* stats */
+  .stats{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:20px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 18px;min-width:130px}
+  .stat .num{font-size:24px;font-weight:700}
+  .stat .lbl{color:var(--muted);font-size:12px;margin-top:2px}
+
+  /* grid */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;cursor:pointer;transition:.15s;position:relative}
+  .card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:var(--shadow)}
+  .card h3{margin:0 0 4px;font-size:16px}
+  .card .offer{color:var(--muted);font-size:12.5px;min-height:32px;line-height:1.35}
+  .card .host{color:var(--muted);font-size:12px;margin-top:8px}
+  .card .host b{color:var(--txt);font-weight:600}
+  .bar{height:8px;border-radius:6px;background:var(--panel2);overflow:hidden;margin-top:12px}
+  .bar > div{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:6px;transition:width .3s}
+  .pct{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-top:6px}
+  .pill{position:absolute;top:14px;right:14px;font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.4px}
+  .pill.live{background:var(--greenbg);color:var(--green)}
+  .pill.prog{background:#2a2410;color:var(--amber)}
+  .pill.new{background:#1a2030;color:var(--accent)}
+
+  /* detail */
+  .detail-head{display:flex;align-items:center;gap:14px;margin-bottom:6px;flex-wrap:wrap}
+  .detail-head h2{margin:0;font-size:24px}
+  .detail-head input.title{background:transparent;border:none;border-bottom:1px dashed var(--line);color:var(--txt);font-size:24px;font-weight:700;outline:none;padding:2px 0}
+  .detail-head input.title:focus{border-color:var(--accent)}
+  .sub{color:var(--muted);margin:0 0 18px}
+  .section{background:var(--panel);border:1px solid var(--line);border-radius:14px;margin-bottom:16px;overflow:hidden}
+  .section > .shead{display:flex;align-items:center;gap:12px;padding:14px 18px;cursor:pointer;user-select:none}
+  .section > .shead h4{margin:0;font-size:14px;letter-spacing:.4px;text-transform:uppercase;color:var(--txt)}
+  .section > .shead .scount{color:var(--muted);font-size:12px}
+  .section > .shead .minibar{flex:1;max-width:160px;height:6px;background:var(--panel2);border-radius:6px;overflow:hidden}
+  .section > .shead .minibar > div{height:100%;background:linear-gradient(90deg,var(--accent),var(--green))}
+  .section > .shead .chev{color:var(--muted);transition:.2s}
+  .section.collapsed .chev{transform:rotate(-90deg)}
+  .section.collapsed .sbody{display:none}
+  .sbody{padding:4px 18px 14px;border-top:1px solid var(--line)}
+  .field{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid rgba(42,47,58,.5)}
+  .field:last-child{border-bottom:none}
+  .field .fname{width:200px;flex-shrink:0;color:var(--muted);font-size:13px}
+  .field .fval{flex:1}
+  .field input.text{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:7px 10px;border-radius:8px;outline:none;font-family:inherit;font-size:13px}
+  .field input.text:focus{border-color:var(--accent)}
+  .field input.text::placeholder{color:#5b6473}
+  /* toggle */
+  .toggle{position:relative;width:44px;height:24px;flex-shrink:0}
+  .toggle input{opacity:0;width:0;height:0}
+  .toggle .track{position:absolute;inset:0;background:var(--panel2);border:1px solid var(--line);border-radius:20px;transition:.18s}
+  .toggle .track:before{content:"";position:absolute;width:18px;height:18px;left:2px;top:2px;background:#6b7280;border-radius:50%;transition:.18s}
+  .toggle input:checked + .track{background:var(--greenbg);border-color:var(--green)}
+  .toggle input:checked + .track:before{transform:translateX(20px);background:var(--green)}
+  .linkish a{word-break:break-all}
+  .toolbar{display:flex;gap:10px;margin:18px 0;flex-wrap:wrap}
+  /* notes */
+  .notes-panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;margin-bottom:16px;overflow:hidden}
+  .notes-panel .nhead{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
+  .notes-panel .nhead h4{margin:0;font-size:14px;letter-spacing:.4px;text-transform:uppercase}
+  .notes-panel .nhead .saved-tag{color:var(--muted);font-size:11.5px;margin-left:auto}
+  .notes-panel textarea{width:100%;min-height:120px;resize:vertical;background:var(--panel2);border:none;color:var(--txt);padding:14px 18px;outline:none;font-family:inherit;font-size:13.5px;line-height:1.5;display:block}
+  .notes-panel textarea::placeholder{color:#5b6473}
+  .card .noteflag{margin-left:6px;font-size:12px}
+
+  /* modal */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:50}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;width:min(420px,92vw);box-shadow:var(--shadow)}
+  .modal h3{margin:0 0 14px}
+  .modal label{display:block;color:var(--muted);font-size:12px;margin:10px 0 5px}
+  .modal input,.modal textarea{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:9px 11px;border-radius:8px;outline:none;font-family:inherit}
+  .modal .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--green);color:#06281c;padding:10px 18px;border-radius:10px;font-weight:600;z-index:60;opacity:0;transition:.3s;pointer-events:none}
+  .toast.show{opacity:1}
+  .empty{text-align:center;color:var(--muted);padding:60px 20px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="dot"></span> SProof Launch Manager</div>
+  <div class="grow"></div>
+  <input id="search" class="search" placeholder="Search clients…">
+  <button class="btn btn-primary" id="addBtn">+ Add client</button>
+  <button class="btn btn-ghost" id="menuBtn">⋯</button>
+</header>
+
+<main>
+  <div id="listView">
+    <div class="stats" id="stats"></div>
+    <div class="grid" id="grid"></div>
+    <div class="empty hidden" id="emptyList">No clients match your search.</div>
+  </div>
+
+  <div id="detailView" class="hidden">
+    <button class="btn btn-ghost" id="backBtn">← All clients</button>
+    <div class="detail-head" style="margin-top:14px">
+      <input class="title" id="detailTitle">
+      <span id="detailPill"></span>
+      <div class="grow"></div>
+      <span class="sub" id="detailPct" style="margin:0"></span>
+    </div>
+    <p class="sub" id="detailOffer"></p>
+    <div class="notes-panel">
+      <div class="nhead"><h4>📝 Notes</h4><span class="saved-tag" id="notesSaved"></span></div>
+      <textarea id="notesArea" placeholder="Add notes about this client — context, blockers, reminders, call recaps…"></textarea>
+    </div>
+    <div id="sections"></div>
+    <div class="toolbar">
+      <button class="btn btn-danger" id="deleteBtn">Delete client</button>
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<!-- menu modal -->
+<div class="overlay hidden" id="menuOverlay">
+  <div class="modal">
+    <h3>Data &amp; backups</h3>
+    <p class="sub" style="font-size:13px">Edits auto-save in this browser. Use a backup to move data to another device or guard against clearing your browser.</p>
+    <div class="actions" style="justify-content:flex-start;flex-wrap:wrap">
+      <button class="btn" id="exportBtn">Download backup (.json)</button>
+      <button class="btn" id="importBtn">Import backup</button>
+    </div>
+    <div class="actions" style="margin-top:18px">
+      <button class="btn btn-danger" id="resetBtn">Reset to original</button>
+      <button class="btn btn-primary" id="menuClose">Close</button>
+    </div>
+    <input type="file" id="fileInput" accept="application/json" class="hidden">
+  </div>
+</div>
+
+<!-- add modal -->
+<div class="overlay hidden" id="addOverlay">
+  <div class="modal">
+    <h3>Add new client</h3>
+    <label>Client name *</label>
+    <input id="newName" placeholder="e.g. Acme Coaching">
+    <label>Host name</label>
+    <input id="newHost" placeholder="Optional">
+    <label>Offer summary</label>
+    <input id="newOffer" placeholder="Optional">
+    <div class="actions">
+      <button class="btn btn-ghost" id="addCancel">Cancel</button>
+      <button class="btn btn-primary" id="addSave">Create</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SEED = {"schema": [{"section": "Onboarding", "fields": [{"name": "Host Name", "type": "text"}, {"name": "Live Date / Time", "type": "text"}, {"name": "Live Tech Date", "type": "text"}, {"name": "GHL Agency Name", "type": "text"}, {"name": "GHL Invited Email", "type": "text"}, {"name": "Offer Intake Link", "type": "text"}, {"name": "Drive Link", "type": "text"}, {"name": "Offer Summary", "type": "text"}, {"name": "Marketing Email", "type": "text"}, {"name": "CRM Phone", "type": "text"}, {"name": "Email In GHL?", "type": "bool"}, {"name": "A2P Approval?", "type": "bool"}, {"name": "Domain in GHL?", "type": "bool"}, {"name": "GHL Pmt Integration?", "type": "bool"}, {"name": "Cortana Client?", "type": "bool"}, {"name": "Kit", "type": "bool"}, {"name": "Calendly", "type": "bool"}, {"name": "Calendly Username", "type": "text"}, {"name": "Calendly Password", "type": "text"}, {"name": "Typeform", "type": "bool"}, {"name": "Typeform Invited User", "type": "text"}, {"name": "Zap Username", "type": "text"}, {"name": "Zap Password", "type": "text"}, {"name": "Live Offer Link", "type": "text"}, {"name": "Name(s) of Closer", "type": "text"}, {"name": "Brand Reference Link", "type": "text"}]}, {"section": "Tech Review", "fields": []}, {"section": "Client Deliverables", "fields": [{"name": "2 VSLs Submitted", "type": "bool"}, {"name": "VIP Content Submitted", "type": "bool"}, {"name": "Client Photo", "type": "bool"}, {"name": "Testimonial Screenshots", "type": "bool"}, {"name": "FAQ Videos", "type": "bool"}]}, {"section": "Funnel", "fields": [{"name": "Landing Page Timer", "type": "bool"}, {"name": "VSL Color Matched", "type": "bool"}, {"name": "All Times Correct", "type": "bool"}, {"name": "All Redirects Correct", "type": "bool"}, {"name": "VIP + Bumps Added", "type": "bool"}, {"name": "VIP Payment Integration", "type": "bool"}, {"name": "VIP Calendar + Reminders", "type": "bool"}, {"name": "VIP Content Added", "type": "bool"}]}, {"section": "Webinarjam", "fields": [{"name": "Zapier Hooked Up", "type": "bool"}, {"name": "Time Is Correct", "type": "bool"}, {"name": "Countdown Text Removed", "type": "bool"}, {"name": "Countdown Emails Added", "type": "bool"}]}, {"section": "Automations", "fields": [{"name": "Time Zone ET", "type": "bool"}, {"name": "SMS Limit Raised", "type": "bool"}, {"name": "SMS Times Correct", "type": "bool"}, {"name": "SMS Links Added", "type": "bool"}, {"name": "SMS Verify Deliverability", "type": "bool"}]}, {"section": "Tracking", "fields": [{"name": "Cortana", "type": "bool"}, {"name": "Pixel Installed", "type": "bool"}]}, {"section": "Prelaunch", "fields": [{"name": "Host Link", "type": "text"}, {"name": "Mod Link", "type": "text"}, {"name": "Attendee Link", "type": "text"}, {"name": "Offer Link", "type": "text"}, {"name": "Confirmation Page", "type": "text"}, {"name": "VIP Page", "type": "text"}]}], "clients": [{"name": "Success With S8", "fields": {"Host Name": "Jared & Jacob", "Live Date / Time": "Tues 7pm EST", "Live Tech Date": "Saturday", "GHL Agency Name": "Success With Section 8", "GHL Invited Email": "hey@cadecrowley.com", "Offer Intake Link": "", "Drive Link": "N/A", "Offer Summary": "RE Investing Course", "Marketing Email": "jared@successwithsection8.com", "CRM Phone": "", "Email In GHL?": true, "A2P Approval?": true, "Domain in GHL?": true, "GHL Pmt Integration?": true, "Cortana Client?": true, "Kit": true, "Calendly": true, "Calendly Username": "", "Calendly Password": "", "Typeform": false, "Typeform Invited User": "", "Zap Username": "", "Zap Password": "", "Live Offer Link": "", "Name(s) of Closer": "", "Brand Reference Link": "", "2 VSLs Submitted": true, "VIP Content Submitted": true, "Client Photo": true, "Testimonial Screenshots": true, "FAQ Videos": true, "Landing Page Timer": false, "VSL Color Matched": false, "All Times Correct": false, "All Redirects Correct": false, "VIP + Bumps Added": false, "VIP Payment Integration": false, "VIP Calendar + Reminders": false, "VIP Content Added": false, "Zapier Hooked Up": false, "Time Is Correct": false, "Countdown Text Removed": false, "Countdown Emails Added": false, "Time Zone ET": false, "SMS Limit Raised": false, "SMS Times Correct": false, "SMS Links Added": false, "SMS Verify Deliverability": false, "Cortana": false, "Pixel Installed": false, "Host Link": "", "Mod Link": "", "Attendee Link": "", "Offer Link": "", "Confirmation Page": "", "VIP Page": ""}}, {"name": "Emberflow", "fields": {"Host Name": "Peter", "Live Date / Time": "TBD", "Live Tech Date": "TBD", "GHL Agency Name": "Emberflow", "GHL Invited Email": "hey@cadecrowley.com", "Offer Intake Link": "", "Drive Link": "N/A", "Offer Summary": "DFY Telehealth Clinic", "Marketing Email": "peter@emberflowai.com", "CRM Phone": "", "Email In GHL?": true, "A2P Approval?": true, "Domain in GHL?": true, "GHL Pmt Integration?": false, "Cortana Client?": true, "Kit": false, "Calendly": false, "Calendly Username": "", "Calendly Password": "", "Typeform": false, "Typeform Invited User": "", "Zap Username": "", "Zap Password": "", "Live Offer Link": "", "Name(s) of Closer": "", "Brand Reference Link": "", "2 VSLs Submitted": true, "VIP Content Submitted": true, "Client Photo": true, "Testimonial Screenshots": true, "FAQ Videos": true, "Landing Page Timer": false, "VSL Color Matched": false, "All Times Correct": false, "All Redirects Correct": false, "VIP + Bumps Added": false, "VIP Payment Integration": false, "VIP Calendar + Reminders": false, "VIP Content Added": false, "Zapier Hooked Up": false, "Time Is Correct": false, "Countdown Text Removed": false, "Countdown Emails Added": false, "Time Zone ET": false, "SMS Limit Raised": false, "SMS Times Correct": false, "SMS Links Added": false, "SMS Verify Deliverability": false, "Cortana": false, "Pixel Installed": false, "Host Link": "", "Mod Link": "", "Attendee Link": "", "Offer Link": "", "Confirmation Page": "", "VIP Page": ""}}, {"name": "Miss Affiliate", "fields": {"Host Name": "Annamaria", "Live Date / Time": "Wed 7pm EST", "Live Tech Date": "Sunday", "GHL Agency Name": "Miss Affiliate", "GHL Invited Email": "hey@cadecrowley.com", "Offer Intake Link": "", "Drive Link": "N/A", "Offer Summary": "Tiktok shop training", "Marketing Email": "info@missaffiliate.com", "CRM Phone": "", "Email In GHL?": true, "A2P Approval?": true, "Domain in GHL?": true, "GHL Pmt Integration?": true, "Cortana Client?": true, "Kit": true, "Calendly": true, "Calendly Username": "", "Calendly Password": "", "Typeform": false, "Typeform Invited User": "", "Zap Username": "", "Zap Password": "", "Live Offer Link": "", "Name(s) of Closer": "", "Brand Reference Link": "", "2 VSLs Submitted": true, "VIP Content Submitted": true, "Client Photo": true, "Testimonial Screenshots": true, "FAQ Videos": true, "Landing Page Timer": false, "VSL Color Matched": false, "All Times Correct": false, "All Redirects Correct": false, "VIP + Bumps Added": false, "VIP Payment Integration": false, "VIP Calendar + Reminders": false, "VIP Content Added": false, "Zapier Hooked Up": false, "Time Is Correct": false, "Countdown Text Removed": false, "Countdown Emails Added": false, "Time Zone ET": false, "SMS Limit Raised": false, "SMS Times Correct": false, "SMS Links Added": false, "SMS Verify Deliverability": false, "Cortana": false, "Pixel Installed": false, "Host Link": "", "Mod Link": "", "Attendee Link": "", "Offer Link": "", "Confirmation Page": "", "VIP Page": ""}}, {"name": "AOYT", "fields": {"Host Name": "Tim Danilov", "Live Date / Time": "Wed 7pm EST", "Live Tech Date": "Sunday", "GHL Agency Name": "Hi Goods Inc", "GHL Invited Email": "hey@cadecrowley.com", "Offer Intake Link": "", "Drive Link": "N/A", "Offer Summary": "faceless youtube course", "Marketing Email": "tim@theartofyt,com", "CRM Phone": "", "Email In GHL?": true, "A2P Approval?": true, "Domain in GHL?": true, "GHL Pmt Integration?": true, "Cortana Client?": true, "Kit": true, "Calendly": true, "Calendly Username": "", "Calendly Password": "", "Typeform": false, "Typeform Invited User": "", "Zap Username": "", "Zap Password": "", "Live Offer Link": "", "Name(s) of Closer": "", "Brand Reference Link": "", "2 VSLs Submitted": true, "VIP Content Submitted": true, "Client Photo": true, "Testimonial Screenshots": true, "FAQ Videos": true, "Landing Page Timer": false, "VSL Color Matched": false, "All Times Correct": false, "All Redirects Correct": false, "VIP + Bumps Added": false, "VIP Payment Integration": false, "VIP Calendar + Reminders": false, "VIP Content Added": false, "Zapier Hooked Up": false, "Time Is Correct": false, "Countdown Text Removed": false, "Countdown Emails Added": false, "Time Zone ET": false, "SMS Limit Raised": false, "SMS Times Correct": false, "SMS Links Added": false, "SMS Verify Deliverability": false, "Cortana": false, "Pixel Installed": false, "Host Link": "", "Mod Link": "", "Attendee Link": "", "Offer Link": "", "Confirmation Page": "", "VIP Page": ""}}, {"name": "Andrew Azaria", "fields": {"Host Name": "Andrew Azaria", "Live Date / Time": "TBD", "Live Tech Date": "TBD", "GHL Agency Name": "ElevationProject", "GHL Invited Email": "hey@cadecrowley.com", "Offer Intake Link": "", "Drive Link": "N/A", "Offer Summary": "How to Sell Products with Social Media", "Marketing Email": "andrew@theelevationprojectltd.com", "CRM Phone": "", "Email In GHL?": true, "A2P Approval?": true, "Domain in GHL?": true, "GHL Pmt Integration?": false, "Cortana Client?": false, "Kit": false, "Calendly": false, "Calendly Username": "", "Calendly Password": "", "Typeform": false, "Typeform Invited User": "", "Zap Username": "", "Zap Password": "", "Live Offer Link": "", "Name(s) of Closer": "", "Brand Reference Link": "", "2 VSLs Submitted": true, "VIP Content Submitted": true, "Client Photo": true, "Testimonial Screenshots": true, "FAQ Videos": true, "Landing Page Timer": false, "VSL Color Matched": false, "All Times Correct": false, "All Redirects Correct": false, "VIP + Bumps Added": false, "VIP Payment Integration": false, "VIP Calendar + Reminders": false, "VIP Content Added": false, "Zapier Hooked Up": false, "Time Is Correct": false, "Countdown Text Removed": false, "Countdown Emails Added": false, "Time Zone ET": false, "SMS Limit Raised": false, "SMS Times Correct": false, "SMS Links Added": false, "SMS Verify Deliverability": false, "Cortana": false, "Pixel Installed": false, "Host Link": "", "Mod Link": "", "Attendee Link": "", "Offer Link": "", "Confirmation Page": "", "VIP Page": ""}}, {"name": "RankOnMaps", "fields": {"Host Name": "Daniel", "Live Date / Time": "TBD", "Live Tech Date": "TBD", "GHL Agency Name": "CloseBetter", "GHL Invited Email": "hey@cadecrowley.com", "Offer Intake Link": "", "Drive Link": "N/A", "Offer Summary": "SEO for Home Service", "Marketing Email": "daniel@rankonmaps.io", "CRM Phone": "", "Email In GHL?": true, "A2P Approval?": true, "Domain in GHL?": true, "GHL Pmt Integration?": false, "Cortana Client?": false, "Kit": false, "Calendly": false, "Calendly Username": "", "Calendly Password": "", "Typeform": false, "Typeform Invited User": "", "Zap Username": "", "Zap Password": "", "Live Offer Link": "", "Name(s) of Closer": "", "Brand Reference Link": "", "2 VSLs Submitted": true, "VIP Content Submitted": true, "Client Photo": true, "Testimonial Screenshots": true, "FAQ Videos": true, "Landing Page Timer": false, "VSL Color Matched": false, "All Times Correct": false, "All Redirects Correct": false, "VIP + Bumps Added": false, "VIP Payment Integration": false, "VIP Calendar + Reminders": false, "VIP Content Added": false, "Zapier Hooked Up": false, "Time Is Correct": false, "Countdown Text Removed": false, "Countdown Emails Added": false, "Time Zone ET": false, "SMS Limit Raised": false, "SMS Times Correct": false, "SMS Links Added": false, "SMS Verify Deliverability": false, "Cortana": false, "Pixel Installed": false, "Host Link": "", "Mod Link": "", "Attendee Link": "", "Offer Link": "", "Confirmation Page": "", "VIP Page": ""}}, {"name": "High Ticket Ecom", "fields": {"Host Name": "Anthony", "Live Date / Time": "TBD", "Live Tech Date": "TBD", "GHL Agency Name": "Infopros", "GHL Invited Email": "N/A", "Offer Intake Link": "", "Drive Link": "N/A", "Offer Summary": "Dropshipping Course", "Marketing Email": "anthony@highticketecom.co", "CRM Phone": "", "Email In GHL?": true, "A2P Approval?": true, "Domain in GHL?": false, "GHL Pmt Integration?": false, "Cortana Client?": false, "Kit": false, "Calendly": false, "Calendly Username": "", "Calendly Password": "", "Typeform": false, "Typeform Invited User": "", "Zap Username": "", "Zap Password": "", "Live Offer Link": "", "Name(s) of Closer": "", "Brand Reference Link": "", "2 VSLs Submitted": true, "VIP Content Submitted": true, "Client Photo": true, "Testimonial Screenshots": true, "FAQ Videos": true, "Landing Page Timer": false, "VSL Color Matched": false, "All Times Correct": false, "All Redirects Correct": false, "VIP + Bumps Added": false, "VIP Payment Integration": false, "VIP Calendar + Reminders": false, "VIP Content Added": false, "Zapier Hooked Up": false, "Time Is Correct": false, "Countdown Text Removed": false, "Countdown Emails Added": false, "Time Zone ET": false, "SMS Limit Raised": false, "SMS Times Correct": false, "SMS Links Added": false, "SMS Verify Deliverability": false, "Cortana": false, "Pixel Installed": false, "Host Link": "", "Mod Link": "", "Attendee Link": "", "Offer Link": "", "Confirmation Page": "", "VIP Page": ""}}, {"name": "Detail Rocket", "fields": {"Host Name": "Rayan", "Live Date / Time": "Wed 7pm EST", "Live Tech Date": "Sunday", "GHL Agency Name": "Detail Launch", "GHL Invited Email": "admin@infopros.io", "Offer Intake Link": "", "Drive Link": "N/A", "Offer Summary": "Marketing for car detailers", "Marketing Email": "rayan@rocketdetailer.com", "CRM Phone": "", "Email In GHL?": true, "A2P Approval?": true, "Domain in GHL?": true, "GHL Pmt Integration?": true, "Cortana Client?": true, "Kit": true, "Calendly": true, "Calendly Username": "", "Calendly Password": "", "Typeform": false, "Typeform Invited User": "", "Zap Username": "", "Zap Password": "", "Live Offer Link": "", "Name(s) of Closer": "", "Brand Reference Link": "", "2 VSLs Submitted": false, "VIP Content Submitted": false, "Client Photo": false, "Testimonial Screenshots": false, "FAQ Videos": false, "Landing Page Timer": false, "VSL Color Matched": false, "All Times Correct": false, "All Redirects Correct": false, "VIP + Bumps Added": false, "VIP Payment Integration": false, "VIP Calendar + Reminders": false, "VIP Content Added": false, "Zapier Hooked Up": false, "Time Is Correct": false, "Countdown Text Removed": false, "Countdown Emails Added": false, "Time Zone ET": false, "SMS Limit Raised": false, "SMS Times Correct": false, "SMS Links Added": false, "SMS Verify Deliverability": false, "Cortana": false, "Pixel Installed": false, "Host Link": "", "Mod Link": "", "Attendee Link": "", "Offer Link": "", "Confirmation Page": "", "VIP Page": ""}}, {"name": "Sales.io", "fields": {"Host Name": "JJ Hernandez", "Live Date / Time": "Wed 7pm EST", "Live Tech Date": "Sunday", "GHL Agency Name": "Sales.io", "GHL Invited Email": "admin@infopros.io", "Offer Intake Link": "", "Drive Link": "N/A", "Offer Summary": "Sales coaching program", "Marketing Email": "jj@sales.io", "CRM Phone": "", "Email In GHL?": true, "A2P Approval?": true, "Domain in GHL?": false, "GHL Pmt Integration?": false, "Cortana Client?": false, "Kit": false, "Calendly": false, "Calendly Username": "", "Calendly Password": "", "Typeform": false, "Typeform Invited User": "", "Zap Username": "", "Zap Password": "", "Live Offer Link": "", "Name(s) of Closer": "", "Brand Reference Link": "", "2 VSLs Submitted": false, "VIP Content Submitted": false, "Client Photo": false, "Testimonial Screenshots": false, "FAQ Videos": false, "Landing Page Timer": false, "VSL Color Matched": false, "All Times Correct": false, "All Redirects Correct": false, "VIP + Bumps Added": false, "VIP Payment Integration": false, "VIP Calendar + Reminders": false, "VIP Content Added": false, "Zapier Hooked Up": false, "Time Is Correct": false, "Countdown Text Removed": false, "Countdown Emails Added": false, "Time Zone ET": false, "SMS Limit Raised": false, "SMS Times Correct": false, "SMS Links Added": false, "SMS Verify Deliverability": false, "Cortana": false, "Pixel Installed": false, "Host Link": "", "Mod Link": "", "Attendee Link": "", "Offer Link": "", "Confirmation Page": "", "VIP Page": ""}}, {"name": "YAUPICKS", "fields": {"Host Name": "Seb", "Live Date / Time": "Wed 7pm AEST", "Live Tech Date": "Sunday", "GHL Agency Name": "YAUPICKS", "GHL Invited Email": "admin@infopros.io", "Offer Intake Link": "", "Drive Link": "N/A", "Offer Summary": "betting group", "Marketing Email": "sales@yaupicks.com", "CRM Phone": "", "Email In GHL?": false, "A2P Approval?": false, "Domain in GHL?": false, "GHL Pmt Integration?": false, "Cortana Client?": false, "Kit": false, "Calendly": false, "Calendly Username": "", "Calendly Password": "", "Typeform": false, "Typeform Invited User": "", "Zap Username": "", "Zap Password": "", "Live Offer Link": "", "Name(s) of Closer": "", "Brand Reference Link": "", "2 VSLs Submitted": false, "VIP Content Submitted": false, "Client Photo": false, "Testimonial Screenshots": false, "FAQ Videos": false, "Landing Page Timer": false, "VSL Color Matched": false, "All Times Correct": false, "All Redirects Correct": false, "VIP + Bumps Added": false, "VIP Payment Integration": false, "VIP Calendar + Reminders": false, "VIP Content Added": false, "Zapier Hooked Up": false, "Time Is Correct": false, "Countdown Text Removed": false, "Countdown Emails Added": false, "Time Zone ET": false, "SMS Limit Raised": false, "SMS Times Correct": false, "SMS Links Added": false, "SMS Verify Deliverability": false, "Cortana": false, "Pixel Installed": false, "Host Link": "", "Mod Link": "", "Attendee Link": "", "Offer Link": "", "Confirmation Page": "", "VIP Page": ""}}, {"name": "Hardknocks", "fields": {"Host Name": "James Dumoulin", "Live Date / Time": "TBD", "Live Tech Date": "TBD", "GHL Agency Name": "School of Mentors", "GHL Invited Email": "admin@infopros.io", "Offer Intake Link": "", "Drive Link": "N/A", "Offer Summary": "Social Media Coaching for Biz", "Marketing Email": "", "CRM Phone": "", "Email In GHL?": false, "A2P Approval?": false, "Domain in GHL?": false, "GHL Pmt Integration?": false, "Cortana Client?": false, "Kit": false, "Calendly": false, "Calendly Username": "", "Calendly Password": "", "Typeform": false, "Typeform Invited User": "", "Zap Username": "", "Zap Password": "", "Live Offer Link": "", "Name(s) of Closer": "", "Brand Reference Link": "", "2 VSLs Submitted": false, "VIP Content Submitted": false, "Client Photo": false, "Testimonial Screenshots": false, "FAQ Videos": false, "Landing Page Timer": false, "VSL Color Matched": false, "All Times Correct": false, "All Redirects Correct": false, "VIP + Bumps Added": false, "VIP Payment Integration": false, "VIP Calendar + Reminders": false, "VIP Content Added": false, "Zapier Hooked Up": false, "Time Is Correct": false, "Countdown Text Removed": false, "Countdown Emails Added": false, "Time Zone ET": false, "SMS Limit Raised": false, "SMS Times Correct": false, "SMS Links Added": false, "SMS Verify Deliverability": false, "Cortana": false, "Pixel Installed": false, "Host Link": "", "Mod Link": "", "Attendee Link": "", "Offer Link": "", "Confirmation Page": "", "VIP Page": ""}}, {"name": "Dirt 2 Dollars", "fields": {"Host Name": "Brady", "Live Date / Time": "TBD", "Live Tech Date": "TBD", "GHL Agency Name": "Carlson Media", "GHL Invited Email": "admin@infopros.io", "Offer Intake Link": "", "Drive Link": "N/A", "Offer Summary": "Meta ads for Land Contractors", "Marketing Email": "brady@dirt2dollars.org", "CRM Phone": "", "Email In GHL?": true, "A2P Approval?": true, "Domain in GHL?": false, "GHL Pmt Integration?": false, "Cortana Client?": false, "Kit": false, "Calendly": false, "Calendly Username": "", "Calendly Password": "", "Typeform": false, "Typeform Invited User": "", "Zap Username": "", "Zap Password": "", "Live Offer Link": "", "Name(s) of Closer": "", "Brand Reference Link": "", "2 VSLs Submitted": false, "VIP Content Submitted": false, "Client Photo": false, "Testimonial Screenshots": false, "FAQ Videos": false, "Landing Page Timer": false, "VSL Color Matched": false, "All Times Correct": false, "All Redirects Correct": false, "VIP + Bumps Added": false, "VIP Payment Integration": false, "VIP Calendar + Reminders": false, "VIP Content Added": false, "Zapier Hooked Up": false, "Time Is Correct": false, "Countdown Text Removed": false, "Countdown Emails Added": false, "Time Zone ET": false, "SMS Limit Raised": false, "SMS Times Correct": false, "SMS Links Added": false, "SMS Verify Deliverability": false, "Cortana": false, "Pixel Installed": false, "Host Link": "", "Mod Link": "", "Attendee Link": "", "Offer Link": "", "Confirmation Page": "", "VIP Page": ""}}, {"name": "Direct Deposit", "fields": {"Host Name": "Clay Lake", "Live Date / Time": "TBD", "Live Tech Date": "TBD", "GHL Agency Name": "Direct Deposit", "GHL Invited Email": "admin@infopros.io", "Offer Intake Link": "", "Drive Link": "N/A", "Offer Summary": "Sales coaching", "Marketing Email": "clay@directdepositmanagement.com", "CRM Phone": "", "Email In GHL?": true, "A2P Approval?": true, "Domain in GHL?": true, "GHL Pmt Integration?": false, "Cortana Client?": false, "Kit": false, "Calendly": false, "Calendly Username": "", "Calendly Password": "", "Typeform": false, "Typeform Invited User": "", "Zap Username": "", "Zap Password": "", "Live Offer Link": "", "Name(s) of Closer": "", "Brand Reference Link": "", "2 VSLs Submitted": false, "VIP Content Submitted": false, "Client Photo": false, "Testimonial Screenshots": false, "FAQ Videos": false, "Landing Page Timer": false, "VSL Color Matched": false, "All Times Correct": false, "All Redirects Correct": false, "VIP + Bumps Added": false, "VIP Payment Integration": false, "VIP Calendar + Reminders": false, "VIP Content Added": false, "Zapier Hooked Up": false, "Time Is Correct": false, "Countdown Text Removed": false, "Countdown Emails Added": false, "Time Zone ET": false, "SMS Limit Raised": false, "SMS Times Correct": false, "SMS Links Added": false, "SMS Verify Deliverability": false, "Cortana": false, "Pixel Installed": false, "Host Link": "", "Mod Link": "", "Attendee Link": "", "Offer Link": "", "Confirmation Page": "", "VIP Page": ""}}, {"name": "AMZ Pilots", "fields": {"Host Name": "Alex G", "Live Date / Time": "TBD", "Live Tech Date": "TBD", "GHL Agency Name": "Authority Income Accelator", "GHL Invited Email": "admin@infopros.io", "Offer Intake Link": "", "Drive Link": "N/A", "Offer Summary": "Amazon Store Bizop", "Marketing Email": "", "CRM Phone": "", "Email In GHL?": false, "A2P Approval?": false, "Domain in GHL?": false, "GHL Pmt Integration?": false, "Cortana Client?": false, "Kit": false, "Calendly": false, "Calendly Username": "", "Calendly Password": "", "Typeform": false, "Typeform Invited User": "", "Zap Username": "", "Zap Password": "", "Live Offer Link": "", "Name(s) of Closer": "", "Brand Reference Link": "", "2 VSLs Submitted": false, "VIP Content Submitted": false, "Client Photo": false, "Testimonial Screenshots": false, "FAQ Videos": false, "Landing Page Timer": false, "VSL Color Matched": false, "All Times Correct": false, "All Redirects Correct": false, "VIP + Bumps Added": false, "VIP Payment Integration": false, "VIP Calendar + Reminders": false, "VIP Content Added": false, "Zapier Hooked Up": false, "Time Is Correct": false, "Countdown Text Removed": false, "Countdown Emails Added": false, "Time Zone ET": false, "SMS Limit Raised": false, "SMS Times Correct": false, "SMS Links Added": false, "SMS Verify Deliverability": false, "Cortana": false, "Pixel Installed": false, "Host Link": "", "Mod Link": "", "Attendee Link": "", "Offer Link": "", "Confirmation Page": "", "VIP Page": ""}}, {"name": "Algo", "fields": {"Host Name": "Jelal", "Live Date / Time": "TBD", "Live Tech Date": "TBD", "GHL Agency Name": "Abou Inc", "GHL Invited Email": "admin@infopros.io", "Offer Intake Link": "", "Drive Link": "N/A", "Offer Summary": "Trading Algorithm", "Marketing Email": "", "CRM Phone": "", "Email In GHL?": false, "A2P Approval?": false, "Domain in GHL?": false, "GHL Pmt Integration?": false, "Cortana Client?": false, "Kit": false, "Calendly": false, "Calendly Username": "", "Calendly Password": "", "Typeform": false, "Typeform Invited User": "", "Zap Username": "", "Zap Password": "", "Live Offer Link": "", "Name(s) of Closer": "", "Brand Reference Link": "", "2 VSLs Submitted": false, "VIP Content Submitted": false, "Client Photo": false, "Testimonial Screenshots": false, "FAQ Videos": false, "Landing Page Timer": false, "VSL Color Matched": false, "All Times Correct": false, "All Redirects Correct": false, "VIP + Bumps Added": false, "VIP Payment Integration": false, "VIP Calendar + Reminders": false, "VIP Content Added": false, "Zapier Hooked Up": false, "Time Is Correct": false, "Countdown Text Removed": false, "Countdown Emails Added": false, "Time Zone ET": false, "SMS Limit Raised": false, "SMS Times Correct": false, "SMS Links Added": false, "SMS Verify Deliverability": false, "Cortana": false, "Pixel Installed": false, "Host Link": "", "Mod Link": "", "Attendee Link": "", "Offer Link": "", "Confirmation Page": "", "VIP Page": ""}}, {"name": "Blue Ocean Ecom", "fields": {"Host Name": "Romas", "Live Date / Time": "Daily 8pm EST Live", "Live Tech Date": "TBD", "GHL Agency Name": "Blue Ocean Program", "GHL Invited Email": "hey@cadecrowley.com", "Offer Intake Link": "", "Drive Link": "N/A", "Offer Summary": "Google Dropshipping Bizop", "Marketing Email": "romas@swimblueocean.com", "CRM Phone": "", "Email In GHL?": true, "A2P Approval?": true, "Domain in GHL?": true, "GHL Pmt Integration?": false, "Cortana Client?": false, "Kit": false, "Calendly": false, "Calendly Username": "", "Calendly Password": "", "Typeform": false, "Typeform Invited User": "", "Zap Username": "", "Zap Password": "", "Live Offer Link": "", "Name(s) of Closer": "", "Brand Reference Link": "", "2 VSLs Submitted": false, "VIP Content Submitted": false, "Client Photo": false, "Testimonial Screenshots": false, "FAQ Videos": false, "Landing Page Timer": false, "VSL Color Matched": false, "All Times Correct": false, "All Redirects Correct": false, "VIP + Bumps Added": false, "VIP Payment Integration": false, "VIP Calendar + Reminders": false, "VIP Content Added": false, "Zapier Hooked Up": false, "Time Is Correct": false, "Countdown Text Removed": false, "Countdown Emails Added": false, "Time Zone ET": false, "SMS Limit Raised": false, "SMS Times Correct": false, "SMS Links Added": false, "SMS Verify Deliverability": false, "Cortana": false, "Pixel Installed": false, "Host Link": "", "Mod Link": "", "Attendee Link": "", "Offer Link": "", "Confirmation Page": "", "VIP Page": ""}}, {"name": "Body Sculpting Academy", "fields": {"Host Name": "Keiri", "Live Date / Time": "TBD", "Live Tech Date": "TBD", "GHL Agency Name": "Infopros", "GHL Invited Email": "N/A", "Offer Intake Link": "", "Drive Link": "https://drive.google.com/drive/folders/173dYhURdElxw-b9_ixSBX0bGOCqnIcXs?usp=sharing", "Offer Summary": "", "Marketing Email": "", "CRM Phone": "Ours", "Email In GHL?": true, "A2P Approval?": true, "Domain in GHL?": false, "GHL Pmt Integration?": false, "Cortana Client?": true, "Kit": false, "Calendly": false, "Calendly Username": "", "Calendly Password": "", "Typeform": false, "Typeform Invited User": "", "Zap Username": "", "Zap Password": "", "Live Offer Link": "", "Name(s) of Closer": "Keiri", "Brand Reference Link": "https://www.bodysculpting-academy.com/bsa-links?utm_source=ig&utm_medium=social&utm_content=link_in_bio&fbclid=PAZXh0bgNhZW0CMTEAc3J0YwZhcHBfaWQPOTM2NjE5NzQzMzkyNDU5AAGnQFmBA1m-2zzdKcNzvKgxS05VBhzTkEmysv4MA0Wgg3IhaFBRweBZn7I-A5o_aem_lvECEZJrPILVcHJlIisdRg", "2 VSLs Submitted": false, "VIP Content Submitted": false, "Client Photo": false, "Testimonial Screenshots": false, "FAQ Videos": false, "Landing Page Timer": false, "VSL Color Matched": false, "All Times Correct": false, "All Redirects Correct": false, "VIP + Bumps Added": false, "VIP Payment Integration": false, "VIP Calendar + Reminders": false, "VIP Content Added": false, "Zapier Hooked Up": false, "Time Is Correct": false, "Countdown Text Removed": false, "Countdown Emails Added": false, "Time Zone ET": false, "SMS Limit Raised": false, "SMS Times Correct": false, "SMS Links Added": false, "SMS Verify Deliverability": false, "Cortana": false, "Pixel Installed": false, "Host Link": "", "Mod Link": "", "Attendee Link": "", "Offer Link": "", "Confirmation Page": "", "VIP Page": ""}}]};
+const LS_KEY = "sproof_client_manager_v1";
+const KEY_FIELDS = {host:"Host Name", offer:"Offer Summary", live:"Live Date / Time"};
+
+const clone = (o)=> (typeof structuredClone==="function" ? structuredClone(o) : JSON.parse(JSON.stringify(o)));
+let state = load();
+
+function load(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  return clone(SEED);
+}
+function save(){
+  localStorage.setItem(LS_KEY, JSON.stringify(state));
+}
+function toast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg; t.classList.add("show");
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),1400);
+}
+
+// ---- progress helpers ----
+function boolFields(){
+  const out=[];
+  state.schema.forEach(s=>s.fields.forEach(f=>{if(f.type==="bool")out.push(f.name)}));
+  return out;
+}
+function progress(client){
+  const bf=boolFields();
+  let done=0;
+  bf.forEach(n=>{if(client.fields[n]===true)done++});
+  return {done,total:bf.length,pct:bf.length?Math.round(done/bf.length*100):0};
+}
+function sectionProgress(client,section){
+  const bs=section.fields.filter(f=>f.type==="bool");
+  let done=0; bs.forEach(f=>{if(client.fields[f.name]===true)done++});
+  return {done,total:bs.length};
+}
+function statusOf(client){
+  const p=progress(client);
+  if(p.pct>=100) return {cls:"live",label:"Ready"};
+  if(p.done===0) return {cls:"new",label:"New"};
+  return {cls:"prog",label:"In progress"};
+}
+function isLink(v){return typeof v==="string" && /^https?:\/\//i.test(v.trim());}
+function isNA(v){return typeof v==="string" && v.trim().toUpperCase()==="N/A";}
+
+// ---- live date normalization ----
+// Values look like "Tues 7pm EST", "Wed 7pm AEST", "Daily 8pm EST Live", "TBD", "".
+// Returns a uniform display string + a sortKey (day-of-week then clock time).
+const DAY_TOKENS=[["daily",0,"Daily"],["mon",1,"Mon"],["tue",2,"Tue"],["wed",3,"Wed"],["thu",4,"Thu"],["fri",5,"Fri"],["sat",6,"Sat"],["sun",7,"Sun"]];
+const DAY_ORDER=["Daily","Mon","Tue","Wed","Thu","Fri","Sat","Sun","Other"];
+function parseLiveDate(raw){
+  const s=(raw==null?"":String(raw)).trim();
+  if(!s) return {display:"", sortKey:99999, day:"", status:"unset"};
+  if(/\btbd\b/i.test(s)) return {display:"TBD", sortKey:90000, day:"TBD", status:"tbd"};
+  let dayIdx=8, dayName="";
+  for(const [tok,idx,nm] of DAY_TOKENS){ if(new RegExp("\\b"+tok,"i").test(s)){ dayIdx=idx; dayName=nm; break; } }
+  let mins=24*60, timeStr="";
+  const tm=s.match(/(\d{1,2})(?::(\d{2}))?\s*([ap])\.?\s*m\.?/i);
+  if(tm){ let h=parseInt(tm[1],10)%12; const mm=tm[2]?parseInt(tm[2],10):0; const pm=/p/i.test(tm[3]); if(pm)h+=12; mins=h*60+mm; const hh=((h%12)||12); timeStr=hh+":"+String(mm).padStart(2,"0")+" "+(pm?"PM":"AM"); }
+  let tz=""; const tzm=s.match(/\b(EST|EDT|PST|PDT|CST|CDT|MST|MDT|AEST|AEDT|GMT|UTC|BST|CET)\b/i);
+  if(tzm) tz=tzm[1].toUpperCase();
+  let display;
+  if(dayName && timeStr) display=dayName+" · "+timeStr+(tz?" "+tz:"");
+  else if(dayName) display=dayName+(tz?" · "+tz:"");
+  else if(timeStr) display=timeStr+(tz?" "+tz:"");
+  else display=s;
+  return {display, sortKey:dayIdx*10000+mins, day:dayName||"Other", status:"scheduled"};
+}
+// Rewrite stored values to the uniform format (idempotent).
+function migrate(){
+  let changed=false;
+  state.clients.forEach(c=>{
+    const raw=c.fields[KEY_FIELDS.live];
+    const p=parseLiveDate(raw);
+    if(p.status==="scheduled" && p.display && p.display!==raw){ c.fields[KEY_FIELDS.live]=p.display; changed=true; }
+  });
+  if(changed) save();
+}
+
+// ---- list view ----
+function renderStats(){
+  const total=state.clients.length;
+  let ready=0,inprog=0,avg=0;
+  state.clients.forEach(c=>{const p=progress(c);avg+=p.pct;const s=statusOf(c);if(s.cls==="live")ready++;else if(s.cls==="prog")inprog++;});
+  avg= total?Math.round(avg/total):0;
+  document.getElementById("stats").innerHTML=`
+    <div class="stat"><div class="num">${total}</div><div class="lbl">Total clients</div></div>
+    <div class="stat"><div class="num" style="color:var(--green)">${ready}</div><div class="lbl">Ready to launch</div></div>
+    <div class="stat"><div class="num" style="color:var(--amber)">${inprog}</div><div class="lbl">In progress</div></div>
+    <div class="stat"><div class="num">${avg}%</div><div class="lbl">Avg. completion</div></div>`;
+}
+function renderList(){
+  renderStats();
+  const q=document.getElementById("search").value.trim().toLowerCase();
+  const grid=document.getElementById("grid");
+  grid.innerHTML="";
+  let shown=state.clients.map((c,i)=>({c,i})).filter(({c})=>{
+    if(!q)return true;
+    return c.name.toLowerCase().includes(q) ||
+      (c.fields[KEY_FIELDS.host]||"").toLowerCase().includes(q) ||
+      (c.fields[KEY_FIELDS.offer]||"").toLowerCase().includes(q);
+  });
+  // Always sort by soonest live date (TBD / unset fall to the bottom).
+  shown.sort((a,b)=>parseLiveDate(a.c.fields[KEY_FIELDS.live]).sortKey-parseLiveDate(b.c.fields[KEY_FIELDS.live]).sortKey || a.c.name.localeCompare(b.c.name));
+  document.getElementById("emptyList").classList.toggle("hidden",shown.length>0);
+  shown.forEach(({c,i})=>{
+    const p=progress(c), s=statusOf(c);
+    const host=c.fields[KEY_FIELDS.host]||"—";
+    const offer=c.fields[KEY_FIELDS.offer]||"";
+    const ld=parseLiveDate(c.fields[KEY_FIELDS.live]);
+    const liveCls= ld.status==="tbd"?"tbd" : ld.status==="unset"?"unset" : "";
+    const liveTxt= ld.status==="unset"?"No live date" : ld.display;
+    const el=document.createElement("div");
+    el.className="card";
+    const hasNotes=c.notes&&c.notes.trim();
+    el.innerHTML=`
+      <span class="pill ${s.cls}">${s.label}</span>
+      <h3>${esc(c.name)}${hasNotes?'<span class="noteflag" title="Has notes">📝</span>':''}</h3>
+      <div class="offer">${esc(offer)||"<span style='opacity:.5'>No offer summary</span>"}</div>
+      <div class="host">Host: <b>${esc(host)}</b></div>
+      <div><span class="live ${liveCls}">📅 ${esc(liveTxt)}</span></div>
+      <div class="bar"><div style="width:${p.pct}%"></div></div>
+      <div class="pct"><span>${p.done}/${p.total} tasks done</span><span>${p.pct}%</span></div>`;
+    el.onclick=()=>openDetail(i);
+    grid.appendChild(el);
+  });
+}
+
+// ---- detail view ----
+let activeIdx=null;
+function openDetail(i){
+  activeIdx=i;
+  document.getElementById("listView").classList.add("hidden");
+  document.getElementById("detailView").classList.remove("hidden");
+  window.scrollTo(0,0);
+  renderDetail();
+}
+function renderDetail(){
+  const c=state.clients[activeIdx];
+  if(!c){backToList();return;}
+  document.getElementById("detailTitle").value=c.name;
+  const p=progress(c), s=statusOf(c);
+  document.getElementById("detailPct").textContent=`${p.done}/${p.total} tasks · ${p.pct}%`;
+  document.getElementById("detailPill").innerHTML=`<span class="pill ${s.cls}" style="position:static">${s.label}</span>`;
+  document.getElementById("detailOffer").textContent=c.fields[KEY_FIELDS.offer]||"";
+  const notes=document.getElementById("notesArea");
+  notes.value=c.notes||"";
+  document.getElementById("notesSaved").textContent= (c.notes&&c.notes.trim())?"":"";
+  notes.oninput=e=>{ c.notes=e.target.value; save(); const tag=document.getElementById("notesSaved"); tag.textContent="Saved ✓"; clearTimeout(notes._t); notes._t=setTimeout(()=>tag.textContent="",1200); };
+  const wrap=document.getElementById("sections");
+  wrap.innerHTML="";
+  state.schema.forEach((sec,si)=>{
+    if(!sec.fields.length)return;
+    const sp=sectionProgress(c,sec);
+    const sEl=document.createElement("div");
+    sEl.className="section";
+    const minibar= sp.total? `<div class="minibar"><div style="width:${Math.round(sp.done/sp.total*100)}%"></div></div>`:`<div class="grow"></div>`;
+    sEl.innerHTML=`
+      <div class="shead">
+        <h4>${esc(sec.section)}</h4>
+        <span class="scount">${sp.total?sp.done+"/"+sp.total:""}</span>
+        ${minibar}
+        <span class="chev">▾</span>
+      </div>
+      <div class="sbody"></div>`;
+    const body=sEl.querySelector(".sbody");
+    sec.fields.forEach(f=>{
+      const fEl=document.createElement("div");
+      fEl.className="field";
+      const val=c.fields[f.name];
+      if(f.type==="bool"){
+        fEl.innerHTML=`<div class="fname">${esc(f.name)}</div>
+          <div class="fval"></div>
+          <label class="toggle"><input type="checkbox" ${val===true?"checked":""}><span class="track"></span></label>`;
+        fEl.querySelector("input").onchange=e=>{c.fields[f.name]=e.target.checked;save();renderDetail();flash();};
+      }else{
+        let valHtml;
+        if(isLink(val)){
+          valHtml=`<div class="fval linkish" style="display:flex;gap:8px;align-items:center">
+            <a href="${esc(val)}" target="_blank" rel="noopener">${esc(val)}</a>
+            <button class="btn btn-ghost editlink" style="padding:4px 8px">edit</button></div>`;
+        }else{
+          valHtml=`<div class="fval"><input class="text" value="${esc(val||"")}" placeholder="—"></div>`;
+        }
+        fEl.innerHTML=`<div class="fname">${esc(f.name)}</div>${valHtml}`;
+        const inp=fEl.querySelector("input.text");
+        if(inp){inp.onchange=e=>{
+          let v=e.target.value;
+          if(f.name===KEY_FIELDS.live){ const pd=parseLiveDate(v); if(pd.status==="scheduled"&&pd.display) v=pd.display; e.target.value=v; }
+          c.fields[f.name]=v; save(); flash();
+        };}
+        const eb=fEl.querySelector(".editlink");
+        if(eb)eb.onclick=()=>{const nv=prompt(f.name,val);if(nv!==null){c.fields[f.name]=nv;save();renderDetail();flash();}};
+      }
+      body.appendChild(fEl);
+    });
+    sEl.querySelector(".shead").onclick=e=>{if(e.target.closest("a"))return;sEl.classList.toggle("collapsed");};
+    wrap.appendChild(sEl);
+  });
+}
+function flash(){toast("Saved");}
+function backToList(){
+  document.getElementById("detailView").classList.add("hidden");
+  document.getElementById("listView").classList.remove("hidden");
+  activeIdx=null; renderList();
+}
+
+// ---- title edit ----
+document.getElementById("detailTitle").addEventListener("change",e=>{
+  const c=state.clients[activeIdx]; if(!c)return;
+  const v=e.target.value.trim(); if(v){c.name=v;save();flash();}else{e.target.value=c.name;}
+});
+
+// ---- add / delete ----
+document.getElementById("addBtn").onclick=()=>{document.getElementById("addOverlay").classList.remove("hidden");document.getElementById("newName").focus();};
+document.getElementById("addCancel").onclick=closeAdd;
+function closeAdd(){document.getElementById("addOverlay").classList.add("hidden");["newName","newHost","newOffer"].forEach(id=>document.getElementById(id).value="");}
+document.getElementById("addSave").onclick=()=>{
+  const name=document.getElementById("newName").value.trim();
+  if(!name){document.getElementById("newName").focus();return;}
+  const rec={name,fields:{}};
+  state.schema.forEach(s=>s.fields.forEach(f=>{rec.fields[f.name]=f.type==="bool"?false:"";}));
+  rec.fields[KEY_FIELDS.host]=document.getElementById("newHost").value.trim();
+  rec.fields[KEY_FIELDS.offer]=document.getElementById("newOffer").value.trim();
+  state.clients.push(rec); save(); closeAdd(); renderList(); toast("Client added");
+};
+document.getElementById("deleteBtn").onclick=()=>{
+  const c=state.clients[activeIdx]; if(!c)return;
+  if(confirm(`Delete "${c.name}"? This cannot be undone.`)){
+    state.clients.splice(activeIdx,1); save(); backToList(); toast("Client deleted");
+  }
+};
+document.getElementById("backBtn").onclick=backToList;
+
+// ---- menu / backups ----
+document.getElementById("menuBtn").onclick=()=>document.getElementById("menuOverlay").classList.remove("hidden");
+document.getElementById("menuClose").onclick=()=>document.getElementById("menuOverlay").classList.add("hidden");
+document.getElementById("exportBtn").onclick=()=>{
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="sproof-clients-backup-"+new Date().toISOString().slice(0,10)+".json"; a.click();
+};
+document.getElementById("importBtn").onclick=()=>document.getElementById("fileInput").click();
+document.getElementById("fileInput").onchange=e=>{
+  const f=e.target.files[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{try{const d=JSON.parse(r.result);if(d.schema&&d.clients){state=d;migrate();save();document.getElementById("menuOverlay").classList.add("hidden");renderList();toast("Backup imported");}else alert("Not a valid backup file.");}catch(err){alert("Could not read file.");}};
+  r.readAsText(f);
+};
+document.getElementById("resetBtn").onclick=()=>{
+  if(confirm("Reset everything to the original spreadsheet data? Your changes will be lost.")){
+    state=clone(SEED); migrate(); save(); document.getElementById("menuOverlay").classList.add("hidden"); backToList(); toast("Reset to original");
+  }
+};
+
+document.getElementById("search").oninput=renderList;
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+
+migrate();
+renderList();
+</script>
+</body>
+</html>
