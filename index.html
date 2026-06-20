@@ -76,21 +76,25 @@
   .section > .shead .chev{color:var(--muted);transition:.2s}
   .section.collapsed .chev{transform:rotate(-90deg)}
   .section.collapsed .sbody{display:none}
-  .sbody{padding:4px 18px 14px;border-top:1px solid var(--line)}
-  .field{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid rgba(42,47,58,.5)}
-  .field:last-child{border-bottom:none}
-  .field .fname{width:200px;flex-shrink:0;color:var(--muted);font-size:13px}
-  .field .fval{flex:1}
-  .field input.text{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:7px 10px;border-radius:8px;outline:none;font-family:inherit;font-size:13px}
+  .sbody{padding:6px 14px 10px}
+  /* text field rows: label sits right next to its input */
+  .field{display:flex;align-items:center;gap:18px;padding:7px 4px;border-radius:8px}
+  .field .fname{width:170px;flex-shrink:0;color:var(--muted);font-size:13px;text-align:right}
+  .field .fval{flex:1;max-width:460px}
+  .field input.text{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:8px 11px;border-radius:8px;outline:none;font-family:inherit;font-size:13px}
   .field input.text:focus{border-color:var(--accent)}
   .field input.text::placeholder{color:#5b6473}
-  /* toggle */
-  .toggle{position:relative;width:44px;height:24px;flex-shrink:0}
-  .toggle input{opacity:0;width:0;height:0}
-  .toggle .track{position:absolute;inset:0;background:var(--panel2);border:1px solid var(--line);border-radius:20px;transition:.18s}
-  .toggle .track:before{content:"";position:absolute;width:18px;height:18px;left:2px;top:2px;background:#6b7280;border-radius:50%;transition:.18s}
-  .toggle input:checked + .track{background:var(--greenbg);border-color:var(--green)}
-  .toggle input:checked + .track:before{transform:translateX(20px);background:var(--green)}
+  /* boolean rows: a clean clickable checklist */
+  .check{display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;padding:8px 8px;border-radius:8px;transition:background .12s}
+  .check:hover{background:var(--panel2)}
+  .check input{position:absolute;opacity:0;width:0;height:0}
+  .check .box{width:20px;height:20px;border-radius:6px;border:1.5px solid #3a4150;background:var(--panel2);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:.15s}
+  .check .box:after{content:"";width:5px;height:9px;border:solid #06281c;border-width:0 2px 2px 0;transform:rotate(45deg) scale(0);transition:transform .15s;margin-top:-2px}
+  .check input:checked + .box{background:var(--green);border-color:var(--green)}
+  .check input:checked + .box:after{transform:rotate(45deg) scale(1)}
+  .check .ctext{font-size:13.5px;color:var(--muted);transition:color .12s}
+  .check input:checked ~ .ctext{color:var(--txt)}
+  .check:hover .ctext{color:var(--txt)}
   .linkish a{word-break:break-all}
   .toolbar{display:flex;gap:10px;margin:18px 0;flex-wrap:wrap}
   /* notes */
@@ -347,6 +351,7 @@ function renderDetail(){
     const sp=sectionProgress(c,sec);
     const sEl=document.createElement("div");
     sEl.className="section";
+    sEl.dataset.si=si;
     const minibar= sp.total? `<div class="minibar"><div style="width:${Math.round(sp.done/sp.total*100)}%"></div></div>`:`<div class="grow"></div>`;
     sEl.innerHTML=`
       <div class="shead">
@@ -358,15 +363,18 @@ function renderDetail(){
       <div class="sbody"></div>`;
     const body=sEl.querySelector(".sbody");
     sec.fields.forEach(f=>{
-      const fEl=document.createElement("div");
-      fEl.className="field";
       const val=c.fields[f.name];
       if(f.type==="bool"){
-        fEl.innerHTML=`<div class="fname">${esc(f.name)}</div>
-          <div class="fval"></div>
-          <label class="toggle"><input type="checkbox" ${val===true?"checked":""}><span class="track"></span></label>`;
-        fEl.querySelector("input").onchange=e=>{c.fields[f.name]=e.target.checked;save();renderDetail();flash();};
-      }else{
+        const lbl=document.createElement("label");
+        lbl.className="check";
+        lbl.innerHTML=`<input type="checkbox" ${val===true?"checked":""}><span class="box"></span><span class="ctext">${esc(f.name)}</span>`;
+        lbl.querySelector("input").onchange=e=>{c.fields[f.name]=e.target.checked;save();refreshProgress();};
+        body.appendChild(lbl);
+        return;
+      }
+      const fEl=document.createElement("div");
+      fEl.className="field";
+      {
         let valHtml;
         if(isLink(val)){
           valHtml=`<div class="fval linkish" style="display:flex;gap:8px;align-items:center">
@@ -392,6 +400,19 @@ function renderDetail(){
   });
 }
 function flash(){toast("Saved");}
+// Update progress UI in place when a checkbox toggles (keeps scroll + expanded sections).
+function refreshProgress(){
+  const c=state.clients[activeIdx]; if(!c)return;
+  const p=progress(c), s=statusOf(c);
+  document.getElementById("detailPct").textContent=`${p.done}/${p.total} tasks · ${p.pct}%`;
+  document.getElementById("detailPill").innerHTML=`<span class="pill ${s.cls}" style="position:static">${s.label}</span>`;
+  document.querySelectorAll("#sections .section").forEach(secEl=>{
+    const sec=state.schema[+secEl.dataset.si]; if(!sec)return;
+    const sp=sectionProgress(c,sec);
+    const sc=secEl.querySelector(".scount"); if(sc) sc.textContent= sp.total? sp.done+"/"+sp.total : "";
+    const mb=secEl.querySelector(".minibar > div"); if(mb && sp.total) mb.style.width=Math.round(sp.done/sp.total*100)+"%";
+  });
+}
 function backToList(){
   document.getElementById("detailView").classList.add("hidden");
   document.getElementById("listView").classList.remove("hidden");
