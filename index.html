@@ -31,6 +31,15 @@
   .live.unset{color:var(--muted);font-weight:500;opacity:.7}
   /* live date picker in detail */
   input.dt{color-scheme:dark;cursor:pointer}
+  /* editable header live-date chip */
+  .live-edit{position:relative;cursor:pointer;color-scheme:dark}
+  .live-edit:hover{border-color:var(--accent)}
+  .live-edit > input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:none;padding:0;margin:0}
+  /* editable header description */
+  input.offer-edit{display:block;width:100%;max-width:620px;background:transparent;border:none;border-bottom:1px dashed transparent;color:var(--muted);font-family:inherit;font-size:14px;padding:2px 0;margin:0 0 18px;outline:none}
+  input.offer-edit:hover{border-bottom-color:var(--line)}
+  input.offer-edit:focus{border-bottom-color:var(--accent);color:var(--txt)}
+  input.offer-edit::placeholder{color:#5b6473}
   .legacy-hint{font-size:11px;color:var(--muted);margin-top:4px;opacity:.75}
   .essential-cap{color:#fbbf24!important}
   button{font-family:inherit;cursor:pointer;border:none;border-radius:9px;padding:9px 14px;font-size:13px;font-weight:600;transition:.15s}
@@ -168,7 +177,7 @@
       <div class="grow"></div>
       <span class="sub" id="detailPct" style="margin:0"></span>
     </div>
-    <p class="sub" id="detailOffer"></p>
+    <input class="sub offer-edit" id="detailOffer" placeholder="Add a description…">
     <div id="topSection"></div>
     <div class="notes-panel">
       <div class="nhead"><h4>📝 Notes</h4><span class="saved-tag" id="notesSaved"></span></div>
@@ -418,7 +427,9 @@ function renderDetail(){
   const p=progress(c);
   document.getElementById("detailPct").textContent=`${p.done}/${p.total} tasks · ${p.pct}%`;
   refreshLiveDisplay();
-  document.getElementById("detailOffer").textContent=c.fields[KEY_FIELDS.offer]||"";
+  const offerEl=document.getElementById("detailOffer");
+  offerEl.value=c.fields[KEY_FIELDS.offer]||"";
+  offerEl.onchange=e=>{ c.fields[KEY_FIELDS.offer]=e.target.value; save(); syncBodyField(KEY_FIELDS.offer,e.target.value); flash(); };
   const notes=document.getElementById("notesArea");
   notes.value=c.notes||"";
   document.getElementById("notesSaved").textContent= (c.notes&&c.notes.trim())?"":"";
@@ -549,13 +560,27 @@ function refreshProgress(){
     const mb=secEl.querySelector(".minibar > div"); if(mb && sp.total) mb.style.width=Math.round(sp.done/sp.total*100)+"%";
   });
 }
-// Refresh the live-date chip in the detail header.
+// Editable live-date chip in the detail header (click to open the calendar picker).
 function refreshLiveDisplay(){
   const c=state.clients[activeIdx]; if(!c)return;
   const ld=parseLiveDate(c.fields[KEY_FIELDS.live]);
   const cls= ld.status==="tbd"?"tbd" : ld.status==="unset"?"unset" : "";
-  const txt= ld.status==="unset"?"No live date" : ld.display;
-  document.getElementById("detailPill").innerHTML=`<span class="live ${cls}" style="margin:0">📅 ${esc(txt)}</span>`;
+  const txt= ld.status==="unset"?"Set live date" : ld.display;
+  const cur=String(c.fields[KEY_FIELDS.live]||"");
+  const isISO=/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/.test(cur);
+  const inputVal= isISO ? (cur.length===10?cur+"T00:00":cur).slice(0,16) : "";
+  const pill=document.getElementById("detailPill");
+  pill.innerHTML=`<label class="live live-edit ${cls}" title="Click to change">📅 <span>${esc(txt)}</span><input type="datetime-local" value="${inputVal}"></label>`;
+  const inp=pill.querySelector("input");
+  inp.onclick=()=>{ try{inp.showPicker();}catch(e){} };
+  inp.onchange=e=>{ c.fields[KEY_FIELDS.live]=e.target.value; save(); refreshLiveDisplay(); syncBodyField(KEY_FIELDS.live,e.target.value); flash(); };
+}
+// Keep the matching field input in the section body in sync after a header edit.
+function syncBodyField(name,val){
+  document.querySelectorAll("#detailView .field").forEach(f=>{
+    const fn=f.querySelector(".fname");
+    if(fn && fn.textContent===name){ const inp=f.querySelector("input"); if(inp){ inp.value= inp.type==="datetime-local" ? (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(val)?String(val).slice(0,16):"") : val; } }
+  });
 }
 function backToList(){
   document.getElementById("detailView").classList.add("hidden");
