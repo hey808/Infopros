@@ -25,9 +25,14 @@
   select.ctrl:focus{border-color:var(--accent)}
   .filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
   .filters .lbl{color:var(--muted);font-size:12px}
-  .card .live{display:inline-flex;align-items:center;gap:6px;margin-top:10px;font-size:12px;font-weight:600;color:var(--txt);background:var(--chip);border:1px solid var(--line);padding:3px 10px;border-radius:20px}
-  .card .live.tbd{color:var(--amber);border-color:#3a3416}
-  .card .live.unset{color:var(--muted);font-weight:500;opacity:.7}
+  .cardtop{margin-bottom:10px}
+  .live{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--txt);background:var(--chip);border:1px solid var(--line);padding:3px 10px;border-radius:20px}
+  .live.tbd{color:var(--amber);border-color:#3a3416}
+  .live.unset{color:var(--muted);font-weight:500;opacity:.7}
+  /* live date picker in detail */
+  input.dt{color-scheme:dark;cursor:pointer}
+  .legacy-hint{font-size:11px;color:var(--muted);margin-top:4px;opacity:.75}
+  .essential-cap{color:#fbbf24!important}
   button{font-family:inherit;cursor:pointer;border:none;border-radius:9px;padding:9px 14px;font-size:13px;font-weight:600;transition:.15s}
   .btn{background:var(--panel2);color:var(--txt);border:1px solid var(--line)}
   .btn:hover{border-color:var(--accent);color:#fff}
@@ -72,10 +77,15 @@
   #sections{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
   @media(max-width:900px){#sections{grid-template-columns:1fr}}
   .section.fullspan{grid-column:1/-1}
-  /* Onboarding split into two field columns */
-  .sbody.twocol{display:flex;gap:0 32px}
+  /* Onboarding split into two field columns: details (left) + setup checklist (right) */
+  .sbody.twocol{display:flex;gap:0}
   .sbody.twocol .col{flex:1;min-width:0}
-  @media(max-width:900px){.sbody.twocol{flex-direction:column;gap:0}}
+  .sbody.twocol .col:first-child{padding-right:30px}
+  .sbody.twocol .col:last-child{padding-left:30px;border-left:1px solid rgba(42,47,58,.7)}
+  .colcap{font-size:10.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);padding:2px 8px 9px;margin-bottom:4px;border-bottom:1px solid rgba(42,47,58,.5)}
+  .field.subfield{margin-left:30px}
+  .field.subfield .fname{width:130px}
+  @media(max-width:900px){.sbody.twocol{flex-direction:column}.sbody.twocol .col{padding:0;border-left:none}}
   .section{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
   .section > .shead{display:flex;align-items:center;gap:12px;padding:14px 18px;cursor:pointer;user-select:none}
   .section > .shead h4{margin:0;font-size:14px;letter-spacing:.4px;text-transform:uppercase;color:var(--txt)}
@@ -214,7 +224,9 @@ const KEY_FIELDS = {host:"Host Name", offer:"Offer Summary", live:"Live Date / T
 // Sections that make up the QC (Quality Control) group — colored distinctly.
 const QC_SECTIONS = new Set(["Funnel","Webinarjam","Automations","Tracking"]);
 // Text fields that only appear when their controlling checkbox is checked.
-const DEPENDS = {"Calendly Username":"Calendly","Calendly Password":"Calendly","Typeform Invited User":"Typeform"};
+const DEPENDS = {"Calendly Username":"Calendly","Calendly Password":"Calendly","Typeform Invited User":"Typeform","Kit Username":"Kit","Kit Password":"Kit"};
+// "Essential" checkboxes, shown as their own column inside Client Deliverables.
+const ESSENTIAL = new Set(["Agency Access","A2P Approval?","Domain in GHL?","GHL Pmt Integration?"]);
 
 const clone = (o)=> (typeof structuredClone==="function" ? structuredClone(o) : JSON.parse(JSON.stringify(o)));
 let state = load();
@@ -261,36 +273,55 @@ function statusOf(client){
 function isLink(v){return typeof v==="string" && /^https?:\/\//i.test(v.trim());}
 function isNA(v){return typeof v==="string" && v.trim().toUpperCase()==="N/A";}
 
-// ---- live date normalization ----
-// Values look like "Tues 7pm EST", "Wed 7pm AEST", "Daily 8pm EST Live", "TBD", "".
-// Returns a uniform display string + a sortKey (day-of-week then clock time).
-const DAY_TOKENS=[["daily",0,"Daily"],["mon",1,"Mon"],["tue",2,"Tue"],["wed",3,"Wed"],["thu",4,"Thu"],["fri",5,"Fri"],["sat",6,"Sat"],["sun",7,"Sun"]];
-const DAY_ORDER=["Daily","Mon","Tue","Wed","Thu","Fri","Sat","Sun","Other"];
+// ---- live date ----
+// Primary format is a real calendar value from the date picker (YYYY-MM-DD or YYYY-MM-DDTHH:MM).
+// Legacy recurring-slot text ("Wed · 7:00 PM EST") still displays, sorting after dated entries.
+const DAY_TOKENS=[["daily",0],["mon",1],["tue",2],["wed",3],["thu",4],["fri",5],["sat",6],["sun",7]];
 function parseLiveDate(raw){
   const s=(raw==null?"":String(raw)).trim();
-  if(!s) return {display:"", sortKey:99999, day:"", status:"unset"};
-  if(/\btbd\b/i.test(s)) return {display:"TBD", sortKey:90000, day:"TBD", status:"tbd"};
-  let dayIdx=8, dayName="";
-  for(const [tok,idx,nm] of DAY_TOKENS){ if(new RegExp("\\b"+tok,"i").test(s)){ dayIdx=idx; dayName=nm; break; } }
-  let mins=24*60, timeStr="";
-  const tm=s.match(/(\d{1,2})(?::(\d{2}))?\s*([ap])\.?\s*m\.?/i);
-  if(tm){ let h=parseInt(tm[1],10)%12; const mm=tm[2]?parseInt(tm[2],10):0; const pm=/p/i.test(tm[3]); if(pm)h+=12; mins=h*60+mm; const hh=((h%12)||12); timeStr=hh+":"+String(mm).padStart(2,"0")+" "+(pm?"PM":"AM"); }
-  let tz=""; const tzm=s.match(/\b(EST|EDT|PST|PDT|CST|CDT|MST|MDT|AEST|AEDT|GMT|UTC|BST|CET)\b/i);
-  if(tzm) tz=tzm[1].toUpperCase();
-  let display;
-  if(dayName && timeStr) display=dayName+" · "+timeStr+(tz?" "+tz:"");
-  else if(dayName) display=dayName+(tz?" · "+tz:"");
-  else if(timeStr) display=timeStr+(tz?" "+tz:"");
-  else display=s;
-  return {display, sortKey:dayIdx*10000+mins, day:dayName||"Other", status:"scheduled"};
+  if(!s) return {display:"", sortKey:9e12, status:"unset"};
+  if(/\btbd\b/i.test(s)) return {display:"TBD", sortKey:8e12, status:"tbd"};
+  if(/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/.test(s)){
+    const hasTime=s.includes("T");
+    const d=new Date(s+(hasTime?"":"T00:00"));
+    if(!isNaN(d)){
+      let disp=d.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
+      if(hasTime) disp+=" · "+d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});
+      return {display:disp, sortKey:d.getTime(), status:"scheduled", iso:s};
+    }
+  }
+  // legacy text — keep visible, sort after all real dates
+  let dayIdx=8;
+  for(const [tok,idx] of DAY_TOKENS){ if(new RegExp("\\b"+tok,"i").test(s)){ dayIdx=idx; break; } }
+  let mins=24*60; const tm=s.match(/(\d{1,2})(?::(\d{2}))?\s*([ap])\.?\s*m\.?/i);
+  if(tm){ let h=parseInt(tm[1],10)%12; const mm=tm[2]?parseInt(tm[2],10):0; if(/p/i.test(tm[3]))h+=12; mins=h*60+mm; }
+  return {display:s, sortKey:5e12+dayIdx*10000+mins, status:"legacy"};
 }
-// Rewrite stored values to the uniform format (idempotent).
+// Schema migration (idempotent): remove Live Offer Link, add Kit credentials, move essentials to Client Deliverables.
 function migrate(){
   let changed=false;
+  const ob=state.schema.find(s=>s.section==="Onboarding");
+  const cd=state.schema.find(s=>s.section==="Client Deliverables");
+  if(ob){
+    const lo=ob.fields.findIndex(f=>f.name==="Live Offer Link");
+    if(lo>=0){ ob.fields.splice(lo,1); changed=true; }
+    if(!ob.fields.some(f=>f.name==="Kit Username")){
+      const ki=ob.fields.findIndex(f=>f.name==="Kit");
+      ob.fields.splice(ki>=0?ki+1:ob.fields.length,0,{name:"Kit Username",type:"text"},{name:"Kit Password",type:"text"});
+      changed=true;
+    }
+    if(cd){
+      ["A2P Approval?","Domain in GHL?","GHL Pmt Integration?"].forEach(nm=>{
+        const i=ob.fields.findIndex(f=>f.name===nm);
+        if(i>=0){ const [fld]=ob.fields.splice(i,1); if(!cd.fields.some(f=>f.name===nm)) cd.fields.push(fld); changed=true; }
+      });
+    }
+  }
+  // Add "Agency Access" essential checkbox to Client Deliverables.
+  if(cd && !cd.fields.some(f=>f.name==="Agency Access")){ cd.fields.push({name:"Agency Access",type:"bool"}); changed=true; }
   state.clients.forEach(c=>{
-    const raw=c.fields[KEY_FIELDS.live];
-    const p=parseLiveDate(raw);
-    if(p.status==="scheduled" && p.display && p.display!==raw){ c.fields[KEY_FIELDS.live]=p.display; changed=true; }
+    ["Kit Username","Kit Password"].forEach(nm=>{ if(!(nm in c.fields)){ c.fields[nm]=""; changed=true; } });
+    if(!("Agency Access" in c.fields)){ c.fields["Agency Access"]=false; changed=true; }
   });
   if(changed) save();
 }
@@ -322,7 +353,7 @@ function renderList(){
   shown.sort((a,b)=>parseLiveDate(a.c.fields[KEY_FIELDS.live]).sortKey-parseLiveDate(b.c.fields[KEY_FIELDS.live]).sortKey || a.c.name.localeCompare(b.c.name));
   document.getElementById("emptyList").classList.toggle("hidden",shown.length>0);
   shown.forEach(({c,i})=>{
-    const p=progress(c), s=statusOf(c);
+    const p=progress(c);
     const host=c.fields[KEY_FIELDS.host]||"—";
     const offer=c.fields[KEY_FIELDS.offer]||"";
     const ld=parseLiveDate(c.fields[KEY_FIELDS.live]);
@@ -332,11 +363,10 @@ function renderList(){
     el.className="card";
     const hasNotes=c.notes&&c.notes.trim();
     el.innerHTML=`
-      <span class="pill ${s.cls}">${s.label}</span>
+      <div class="cardtop"><span class="live ${liveCls}">📅 ${esc(liveTxt)}</span></div>
       <h3>${esc(c.name)}${hasNotes?'<span class="noteflag" title="Has notes">📝</span>':''}</h3>
       <div class="offer">${esc(offer)||"<span style='opacity:.5'>No offer summary</span>"}</div>
       <div class="host">Host: <b>${esc(host)}</b></div>
-      <div><span class="live ${liveCls}">📅 ${esc(liveTxt)}</span></div>
       <div class="bar"><div style="width:${p.pct}%"></div></div>
       <div class="pct"><span>${p.done}/${p.total} tasks done</span><span>${p.pct}%</span></div>`;
     el.onclick=()=>openDetail(i);
@@ -357,9 +387,9 @@ function renderDetail(){
   const c=state.clients[activeIdx];
   if(!c){backToList();return;}
   document.getElementById("detailTitle").value=c.name;
-  const p=progress(c), s=statusOf(c);
+  const p=progress(c);
   document.getElementById("detailPct").textContent=`${p.done}/${p.total} tasks · ${p.pct}%`;
-  document.getElementById("detailPill").innerHTML=`<span class="pill ${s.cls}" style="position:static">${s.label}</span>`;
+  refreshLiveDisplay();
   document.getElementById("detailOffer").textContent=c.fields[KEY_FIELDS.offer]||"";
   const notes=document.getElementById("notesArea");
   notes.value=c.notes||"";
@@ -387,7 +417,7 @@ function buildField(f,c){
   if(f.type==="bool"){
     const lbl=document.createElement("label");
     lbl.className="check";
-    lbl.innerHTML=`<input type="checkbox" ${val===true?"checked":""}><span class="box"></span><span class="ctext">${esc(f.name)}</span>`;
+    lbl.innerHTML=`<input type="checkbox" ${val===true?"checked":""}><span class="box"></span><span class="ctext">${esc(f.name.replace(/\?\s*$/,""))}</span>`;
     lbl.querySelector("input").onchange=e=>{
       c.fields[f.name]=e.target.checked; save(); refreshProgress();
       document.querySelectorAll('[data-dep-of="'+f.name+'"]').forEach(el=>el.classList.toggle("hidden",!e.target.checked));
@@ -398,6 +428,16 @@ function buildField(f,c){
   fEl.className="field";
   const dep=DEPENDS[f.name];
   if(dep){ fEl.dataset.depOf=dep; if(c.fields[dep]!==true) fEl.classList.add("hidden"); }
+  // Live date: a calendar (date + time) picker.
+  if(f.name===KEY_FIELDS.live){
+    const cur=String(val||"");
+    const isISO=/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/.test(cur);
+    const inputVal= isISO ? (cur.length===10?cur+"T00:00":cur).slice(0,16) : "";
+    const hint= (!isISO && cur && !/\btbd\b/i.test(cur)) ? `<div class="legacy-hint">was: ${esc(cur)}</div>` : "";
+    fEl.innerHTML=`<div class="fname">${esc(f.name)}</div><div class="fval"><input type="datetime-local" class="text dt" value="${inputVal}">${hint}</div>`;
+    fEl.querySelector("input").onchange=e=>{ c.fields[f.name]=e.target.value; save(); refreshLiveDisplay(); const h=fEl.querySelector(".legacy-hint"); if(h)h.remove(); flash(); };
+    return fEl;
+  }
   let valHtml;
   if(isLink(val)){
     valHtml=`<div class="fval linkish" style="display:flex;gap:8px;align-items:center">
@@ -438,12 +478,30 @@ function buildSection(sec,si,c){
   const body=sEl.querySelector(".sbody");
   if(isOnboarding){
     body.classList.add("twocol");
-    const col1=document.createElement("div"); col1.className="col";
-    const col2=document.createElement("div"); col2.className="col";
-    let split=sec.fields.findIndex(f=>f.name==="Email In GHL?");
-    if(split<0) split=Math.ceil(sec.fields.length/2);
-    sec.fields.forEach((f,idx)=>{ (idx>=split?col2:col1).appendChild(buildField(f,c)); });
-    body.appendChild(col1); body.appendChild(col2);
+    const colL=document.createElement("div"); colL.className="col";
+    const colR=document.createElement("div"); colR.className="col";
+    colL.innerHTML='<div class="colcap">Details</div>';
+    colR.innerHTML='<div class="colcap">Setup checklist</div>';
+    // forward map: checkbox -> its dependent text fields (rendered indented beneath it)
+    const deps={};
+    Object.entries(DEPENDS).forEach(([field,ctrl])=>{(deps[ctrl]=deps[ctrl]||[]).push(field);});
+    sec.fields.forEach(f=>{
+      if(f.type==="bool"){
+        colR.appendChild(buildField(f,c));
+        (deps[f.name]||[]).forEach(dn=>{ const df=sec.fields.find(x=>x.name===dn); if(df){const n=buildField(df,c); n.classList.add("subfield"); colR.appendChild(n);} });
+      }else if(!DEPENDS[f.name]){
+        colL.appendChild(buildField(f,c)); // standalone text fields on the left
+      }
+    });
+    body.appendChild(colL); body.appendChild(colR);
+  }else if(sec.section==="Client Deliverables" && sec.fields.some(f=>ESSENTIAL.has(f.name))){
+    body.classList.add("twocol");
+    const colL=document.createElement("div"); colL.className="col";
+    const colR=document.createElement("div"); colR.className="col";
+    colL.innerHTML='<div class="colcap">Deliverables</div>';
+    colR.innerHTML='<div class="colcap essential-cap">Essential</div>';
+    sec.fields.forEach(f=>{ (ESSENTIAL.has(f.name)?colR:colL).appendChild(buildField(f,c)); });
+    body.appendChild(colL); body.appendChild(colR);
   }else{
     sec.fields.forEach(f=>body.appendChild(buildField(f,c)));
   }
@@ -454,15 +512,22 @@ function flash(){toast("Saved");}
 // Update progress UI in place when a checkbox toggles (keeps scroll + expanded sections).
 function refreshProgress(){
   const c=state.clients[activeIdx]; if(!c)return;
-  const p=progress(c), s=statusOf(c);
+  const p=progress(c);
   document.getElementById("detailPct").textContent=`${p.done}/${p.total} tasks · ${p.pct}%`;
-  document.getElementById("detailPill").innerHTML=`<span class="pill ${s.cls}" style="position:static">${s.label}</span>`;
   document.querySelectorAll("#detailView .section").forEach(secEl=>{
     const sec=state.schema[+secEl.dataset.si]; if(!sec)return;
     const sp=sectionProgress(c,sec);
     const sc=secEl.querySelector(".scount"); if(sc) sc.textContent= sp.total? sp.done+"/"+sp.total : "";
     const mb=secEl.querySelector(".minibar > div"); if(mb && sp.total) mb.style.width=Math.round(sp.done/sp.total*100)+"%";
   });
+}
+// Refresh the live-date chip in the detail header.
+function refreshLiveDisplay(){
+  const c=state.clients[activeIdx]; if(!c)return;
+  const ld=parseLiveDate(c.fields[KEY_FIELDS.live]);
+  const cls= ld.status==="tbd"?"tbd" : ld.status==="unset"?"unset" : "";
+  const txt= ld.status==="unset"?"No live date" : ld.display;
+  document.getElementById("detailPill").innerHTML=`<span class="live ${cls}" style="margin:0">📅 ${esc(txt)}</span>`;
 }
 function backToList(){
   document.getElementById("detailView").classList.add("hidden");
