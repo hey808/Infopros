@@ -297,6 +297,27 @@ function parseLiveDate(raw){
   if(tm){ let h=parseInt(tm[1],10)%12; const mm=tm[2]?parseInt(tm[2],10):0; if(/p/i.test(tm[3]))h+=12; mins=h*60+mm; }
   return {display:s, sortKey:5e12+dayIdx*10000+mins, status:"legacy"};
 }
+// Convert a legacy recurring-slot string ("Wed 7pm EST", "Daily 8pm Live") into a concrete
+// upcoming calendar datetime (YYYY-MM-DDTHH:MM). Returns null if already standardized / not convertible.
+function legacyToISO(raw){
+  const s=(raw==null?"":String(raw)).trim();
+  if(!s) return null;
+  if(/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/.test(s)) return null; // already a calendar date
+  if(/\btbd\b/i.test(s)) return null; // leave TBD as-is
+  const tm=s.match(/(\d{1,2})(?::(\d{2}))?\s*([ap])\.?\s*m\.?/i);
+  if(!tm) return null; // no time to anchor on
+  let h=parseInt(tm[1],10)%12; const mm=tm[2]?parseInt(tm[2],10):0; if(/p/i.test(tm[3]))h+=12;
+  const dayMap={sun:0,mon:1,tue:2,tues:2,wed:3,wednes:3,thu:4,thur:4,thurs:4,fri:5,sat:6};
+  const daily=/\bdaily\b/i.test(s);
+  let dow=null; if(!daily){ for(const k of Object.keys(dayMap)){ if(new RegExp("\\b"+k,"i").test(s)){ dow=dayMap[k]; break; } } }
+  if(!daily && dow===null) return null;
+  const now=new Date();
+  const d=new Date(now.getFullYear(),now.getMonth(),now.getDate(),h,mm,0,0);
+  if(daily){ if(d<now) d.setDate(d.getDate()+1); }
+  else { let add=(dow-d.getDay()+7)%7; if(add===0 && d<now) add=7; d.setDate(d.getDate()+add); }
+  const p=n=>String(n).padStart(2,"0");
+  return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())+"T"+p(d.getHours())+":"+p(d.getMinutes());
+}
 // Schema migration (idempotent): remove Live Offer Link, add Kit credentials, move essentials to Client Deliverables.
 function migrate(){
   let changed=false;
@@ -310,6 +331,11 @@ function migrate(){
       ob.fields.splice(ki>=0?ki+1:ob.fields.length,0,{name:"Kit Username",type:"text"},{name:"Kit Password",type:"text"});
       changed=true;
     }
+    if(!ob.fields.some(f=>f.name==="Master Copy Doc")){
+      const ii=ob.fields.findIndex(f=>f.name==="Offer Intake Link");
+      ob.fields.splice(ii>=0?ii+1:ob.fields.length,0,{name:"Master Copy Doc",type:"text"});
+      changed=true;
+    }
     if(cd){
       ["A2P Approval?","Domain in GHL?","GHL Pmt Integration?"].forEach(nm=>{
         const i=ob.fields.findIndex(f=>f.name===nm);
@@ -320,8 +346,10 @@ function migrate(){
   // Add "Agency Access" essential checkbox to Client Deliverables.
   if(cd && !cd.fields.some(f=>f.name==="Agency Access")){ cd.fields.push({name:"Agency Access",type:"bool"}); changed=true; }
   state.clients.forEach(c=>{
-    ["Kit Username","Kit Password"].forEach(nm=>{ if(!(nm in c.fields)){ c.fields[nm]=""; changed=true; } });
+    ["Kit Username","Kit Password","Master Copy Doc"].forEach(nm=>{ if(!(nm in c.fields)){ c.fields[nm]=""; changed=true; } });
     if(!("Agency Access" in c.fields)){ c.fields["Agency Access"]=false; changed=true; }
+    const iso=legacyToISO(c.fields[KEY_FIELDS.live]);
+    if(iso){ c.fields[KEY_FIELDS.live]=iso; changed=true; }
   });
   if(changed) save();
 }
