@@ -25,7 +25,18 @@
   select.ctrl:focus{border-color:var(--accent)}
   .filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
   .filters .lbl{color:var(--muted);font-size:12px}
-  .cardtop{margin-bottom:10px}
+  .cardtop{margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  /* status pill + selector */
+  .status-pill{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.4px}
+  .status-pill.prog{background:#1a2030;color:var(--accent)}
+  .status-pill.pause{background:#2a2410;color:var(--amber)}
+  .status-pill.done{background:var(--greenbg);color:var(--green)}
+  .status-select{background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:6px 10px;border-radius:20px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;outline:none}
+  .status-select.prog{color:var(--accent);border-color:#26334d}
+  .status-select.pause{color:var(--amber);border-color:#3a3416}
+  .status-select.done{color:var(--green);border-color:#1c3a2e}
+  .archived-banner{background:#2a2410;color:var(--amber);border:1px solid #3a3416;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:600;margin:10px 0 0}
+  .unarch-btn{margin-top:12px;width:100%;font-size:12px;padding:7px}
   .live{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--txt);background:var(--chip);border:1px solid var(--line);padding:3px 10px;border-radius:20px}
   .live.tbd{color:var(--amber);border-color:#3a3416}
   .live.unset{color:var(--muted);font-weight:500;opacity:.7}
@@ -192,19 +203,36 @@
   .cal-chip{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:4px 11px;font-size:12.5px;margin:0 6px 6px 0;cursor:pointer}
   .cal-chip:hover{border-color:var(--accent)}
   /* tasks view */
-  .task-client{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:6px 16px 12px;margin-bottom:16px;max-width:760px}
-  .tc-head{display:flex;align-items:center;gap:12px;padding:12px 2px;cursor:pointer;border-bottom:1px solid var(--line);margin-bottom:6px}
-  .tc-head h3{margin:0;font-size:16px;flex:1}
-  .tc-head:hover h3{color:#fff}
+  .daily-note{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 16px;margin-bottom:18px;max-width:760px}
+  .dn-head{font-size:13px;font-weight:600;color:var(--txt);margin-bottom:8px}
+  .dn-date{color:var(--muted);font-weight:500;margin-left:6px}
+  .daily-note textarea{width:100%;min-height:60px;resize:vertical;background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:10px 12px;border-radius:8px;outline:none;font-family:inherit;font-size:13.5px;line-height:1.5}
+  .daily-note textarea:focus{border-color:var(--accent)}
+  .task-client{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:2px 16px 6px;margin-bottom:14px;max-width:760px}
+  .tc-head{display:flex;align-items:center;gap:11px;padding:12px 2px;cursor:pointer}
+  .tc-head .chev{color:var(--muted);font-size:12px;transition:transform .15s}
+  .task-client.collapsed .chev{transform:rotate(-90deg)}
+  .task-client.collapsed .tc-body{display:none}
+  .task-client:not(.collapsed) .tc-head{border-bottom:1px solid var(--line)}
+  .tc-name{margin:0;font-size:16px;flex:1;cursor:pointer}
+  .tc-name:hover{color:#fff;text-decoration:underline}
   .tc-count{font-size:12px;font-weight:600;color:var(--amber)}
   .tc-count.done{color:var(--green)}
+  .tc-body{padding-top:6px}
   .tc-sec{font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin:10px 2px 2px}
   .task-item{padding:6px 8px}
-  /* evergreen */
+  /* evergreen / daily */
   .live.evergreen{color:#5eead4;border-color:#1c3a39}
-  .ever-toggle{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted);cursor:pointer;user-select:none;margin-top:8px}
-  .live-field{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
-  .live-field input.dt:disabled{opacity:.4;cursor:not-allowed}
+  .live.daily{color:#93c5fd;border-color:#26334d}
+  button.live{font-family:inherit;font-weight:600}
+  /* live editor (date + PM hour, daily, evergreen) */
+  .live-editor{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+  .live-editor .le-row{display:flex;align-items:center;gap:8px}
+  .live-editor .le-at{color:var(--muted);font-size:13px}
+  .live-editor input.le-date,.live-editor select.le-hour{background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:7px 10px;border-radius:8px;outline:none;font-family:inherit;font-size:13px;color-scheme:dark}
+  .live-editor input.le-date:focus,.live-editor select.le-hour:focus{border-color:var(--accent)}
+  .ever-toggle{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted);cursor:pointer;user-select:none}
+  .live-pop{position:absolute;z-index:60;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:var(--shadow);min-width:230px}
 </style>
 </head>
 <body>
@@ -221,6 +249,7 @@
   <button class="navbtn active" data-view="clients"><span>▦</span> Clients</button>
   <button class="navbtn" data-view="tasks"><span>✓</span> Tasks</button>
   <button class="navbtn" data-view="calendar"><span>▤</span> Calendar</button>
+  <button class="navbtn" data-view="archived"><span>🗄</span> Archived</button>
 </nav>
 <main>
   <div id="listView">
@@ -232,14 +261,18 @@
 
   <div id="tasksView" class="hidden"></div>
 
+  <div id="archivedView" class="hidden"></div>
+
   <div id="detailView" class="hidden">
     <button class="btn btn-ghost" id="backBtn">← All clients</button>
     <div class="detail-head" style="margin-top:14px">
       <input class="title" id="detailTitle">
       <span id="detailPill"></span>
+      <select id="detailStatus" class="status-select"></select>
       <div class="grow"></div>
       <span class="sub" id="detailPct" style="margin:0"></span>
     </div>
+    <div class="archived-banner hidden" id="archivedBanner">🗄 This project is archived — hidden from Clients, Tasks and Calendar.</div>
     <input class="sub offer-edit" id="detailOffer" placeholder="Add a description…">
     <div id="topSection"></div>
     <div class="notes-panel">
@@ -248,6 +281,7 @@
     </div>
     <div id="sections"></div>
     <div class="toolbar">
+      <button class="btn" id="archiveBtn">Archive project</button>
       <button class="btn btn-danger" id="deleteBtn">Delete client</button>
     </div>
   </div>
@@ -311,6 +345,9 @@ const ESSENTIAL = new Set(["Agency Access","Email sending domain connected","A2P
 const OPTIONAL_SECTIONS = new Set(["Tracking"]);
 // Onboarding text fields forced into the right ("Setup") column instead of the left.
 const RIGHT_FIELDS = new Set(["Brand Reference Link","Zap Username","Zap Password"]);
+// Client workflow statuses.
+const STATUSES=["In Progress","Pause","Done"];
+const STATUS_CLS={"In Progress":"prog","Pause":"pause","Done":"done"};
 
 const clone = (o)=> (typeof structuredClone==="function" ? structuredClone(o) : JSON.parse(JSON.stringify(o)));
 let state = load();
@@ -365,6 +402,8 @@ function parseLiveDate(raw){
   const s=(raw==null?"":String(raw)).trim();
   if(!s) return {display:"", sortKey:9e12, status:"unset"};
   if(/^evergreen$/i.test(s)) return {display:"Evergreen", sortKey:7e12, status:"evergreen"};
+  const dm=s.match(/^daily:(\d{1,2})$/i);
+  if(dm){ const h=parseInt(dm[1],10); const hr=h===12?12:(h>12?h-12:h); return {display:"Daily · "+hr+":00 PM", sortKey:6e12+h, status:"daily", hour:h}; }
   if(/\btbd\b/i.test(s)) return {display:"TBD", sortKey:8e12, status:"tbd"};
   if(/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/.test(s)){
     const hasTime=s.includes("T");
@@ -382,6 +421,58 @@ function parseLiveDate(raw){
   if(tm){ let h=parseInt(tm[1],10)%12; const mm=tm[2]?parseInt(tm[2],10):0; if(/p/i.test(tm[3]))h+=12; mins=h*60+mm; }
   return {display:s, sortKey:5e12+dayIdx*10000+mins, status:"legacy"};
 }
+// ---- shared live-date editor (date + PM-hour, or Daily Automated, or Evergreen) ----
+function liveModeOf(v){
+  v=String(v||"");
+  if(/^evergreen$/i.test(v)) return "evergreen";
+  if(/^daily:/i.test(v)) return "daily";
+  if(/^\d{4}-\d{2}-\d{2}/.test(v)) return "scheduled";
+  return "unset";
+}
+function hourOptions(sel){ let o=""; for(let h=12;h<=23;h++){ const hr=h===12?12:h-12; o+=`<option value="${h}" ${sel===h?"selected":""}>${hr}:00 PM</option>`; } return o; }
+// Fill `box` with the live-date controls for client c; calls after() after each edit.
+function attachLiveEditor(box, c, after){
+  const v=String(c.fields[KEY_FIELDS.live]||"");
+  const mode=liveModeOf(v);
+  let datePart="", hour=19;
+  if(mode==="scheduled"){ datePart=v.slice(0,10); const hh=parseInt(v.slice(11,13),10); if(!isNaN(hh)) hour=hh; }
+  else if(mode==="daily"){ const m=v.match(/^daily:(\d+)/i); if(m) hour=parseInt(m[1],10); }
+  if(hour<12) hour+=12; if(hour>23||isNaN(hour)) hour=19;
+  const ever=mode==="evergreen", daily=mode==="daily";
+  box.className="live-editor";
+  box.innerHTML=`
+    ${ever?"":`<div class="le-row">
+      ${daily?'<span class="le-at">Daily, automated at</span>':'<input type="date" class="text le-date" value="'+datePart+'"> <span class="le-at">at</span>'}
+      <select class="text le-hour">${hourOptions(hour)}</select>
+    </div>`}
+    <label class="ever-toggle"><input type="checkbox" class="le-daily" ${daily?"checked":""}> 🔁 Daily automated</label>
+    <label class="ever-toggle"><input type="checkbox" class="le-ever" ${ever?"checked":""}> 🌲 Evergreen webinar</label>`;
+  const dateI=box.querySelector(".le-date"), hourI=box.querySelector(".le-hour"), dailyI=box.querySelector(".le-daily"), everI=box.querySelector(".le-ever");
+  function commit(){
+    let nv;
+    if(everI.checked) nv="EVERGREEN";
+    else if(dailyI.checked) nv="DAILY:"+hourI.value;
+    else nv = (dateI && dateI.value) ? dateI.value+"T"+String(hourI.value).padStart(2,"0")+":00" : "";
+    c.fields[KEY_FIELDS.live]=nv; save(); if(after) after();
+  }
+  if(dateI) dateI.onchange=commit;
+  if(hourI) hourI.onchange=commit;
+  dailyI.onchange=()=>{ if(dailyI.checked) everI.checked=false; commit(); attachLiveEditor(box,c,after); };
+  everI.onchange=()=>{ if(everI.checked) dailyI.checked=false; commit(); attachLiveEditor(box,c,after); };
+}
+// Floating popover version, anchored under `anchor`.
+function openLivePopover(anchor, c, after){
+  closeLivePopover();
+  const pop=document.createElement("div"); pop.className="live-pop"; pop.id="livePop";
+  document.body.appendChild(pop);
+  attachLiveEditor(pop, c, after);
+  const r=anchor.getBoundingClientRect();
+  pop.style.top=(window.scrollY+r.bottom+6)+"px";
+  pop.style.left=(window.scrollX+r.left)+"px";
+  setTimeout(()=>document.addEventListener("mousedown",popOutside),0);
+}
+function popOutside(e){ const p=document.getElementById("livePop"); if(p && !p.contains(e.target)) closeLivePopover(); }
+function closeLivePopover(){ const p=document.getElementById("livePop"); if(p)p.remove(); document.removeEventListener("mousedown",popOutside); }
 // Convert a legacy recurring-slot string ("Wed 7pm EST", "Daily 8pm Live") into a concrete
 // upcoming calendar datetime (YYYY-MM-DDTHH:MM). Returns null if already standardized / not convertible.
 function legacyToISO(raw){
@@ -475,6 +566,8 @@ function migrate(){
   if(cd && !cd.fields.some(f=>f.name==="Agency Access")){ cd.fields.push({name:"Agency Access",type:"bool"}); changed=true; }
   if(cd && !cd.fields.some(f=>f.name==="Email sending domain connected")){ cd.fields.push({name:"Email sending domain connected",type:"bool"}); changed=true; }
   state.clients.forEach(c=>{
+    if(!c.status){ c.status="In Progress"; changed=true; }
+    if(c.archived===undefined){ c.archived=false; changed=true; }
     ["Kit Username","Kit Password","Master Copy Doc"].forEach(nm=>{ if(!(nm in c.fields)){ c.fields[nm]=""; changed=true; } });
     ["Agency Access","Email sending domain connected","Closer Assigned"].forEach(nm=>{ if(!(nm in c.fields)){ c.fields[nm]=false; changed=true; } });
     const iso=legacyToISO(c.fields[KEY_FIELDS.live]);
@@ -484,11 +577,34 @@ function migrate(){
 }
 
 // ---- list view ----
+function buildCard(c,i){
+  const p=progress(c);
+  const host=c.fields[KEY_FIELDS.host]||"—";
+  const offer=c.fields[KEY_FIELDS.offer]||"";
+  const ld=parseLiveDate(c.fields[KEY_FIELDS.live]);
+  const liveCls= ld.status==="tbd"?"tbd" : ld.status==="unset"?"unset" : ld.status==="evergreen"?"evergreen" : ld.status==="daily"?"daily" : "";
+  const liveTxt= ld.status==="unset"?"No live date" : ld.display;
+  const liveIcon= ld.status==="evergreen"?"🌲" : ld.status==="daily"?"🔁" : "📅";
+  const st=c.status||"In Progress";
+  const el=document.createElement("div");
+  el.className="card";
+  const hasNotes=c.notes&&c.notes.trim();
+  el.innerHTML=`
+    <div class="cardtop"><span class="live ${liveCls}">${liveIcon} ${esc(liveTxt)}</span><span class="status-pill ${STATUS_CLS[st]||"prog"}">${esc(st)}</span></div>
+    <h3>${esc(c.name)}${hasNotes?'<span class="noteflag" title="Has notes">📝</span>':''}</h3>
+    <div class="offer">${esc(offer)||"<span style='opacity:.5'>No offer summary</span>"}</div>
+    <div class="host">Host: <b>${esc(host)}</b></div>
+    <div class="bar"><div style="width:${p.pct}%"></div></div>
+    <div class="pct"><span>${p.done}/${p.total} tasks done</span><span>${p.pct}%</span></div>`;
+  el.onclick=()=>openDetail(i);
+  return el;
+}
 function renderList(){
   const q=document.getElementById("search").value.trim().toLowerCase();
   const grid=document.getElementById("grid");
   grid.innerHTML="";
   let shown=state.clients.map((c,i)=>({c,i})).filter(({c})=>{
+    if(c.archived) return false;
     if(!q)return true;
     return c.name.toLowerCase().includes(q) ||
       (c.fields[KEY_FIELDS.host]||"").toLowerCase().includes(q) ||
@@ -499,30 +615,27 @@ function renderList(){
   document.getElementById("emptyList").classList.toggle("hidden",shown.length>0);
   let dividerDone=false;
   shown.forEach(({c,i})=>{
-    const p=progress(c);
-    const host=c.fields[KEY_FIELDS.host]||"—";
-    const offer=c.fields[KEY_FIELDS.offer]||"";
     const ld=parseLiveDate(c.fields[KEY_FIELDS.live]);
-    // Divider between clients with a launch plan (date or evergreen) and those without.
     if((ld.status==="tbd"||ld.status==="unset"||ld.status==="legacy") && !dividerDone && grid.children.length>0){
       const dv=document.createElement("div"); dv.className="grid-divider"; dv.innerHTML="<span>No launch date set</span>";
       grid.appendChild(dv); dividerDone=true;
     }
-    const liveCls= ld.status==="tbd"?"tbd" : ld.status==="unset"?"unset" : ld.status==="evergreen"?"evergreen" : "";
-    const liveTxt= ld.status==="unset"?"No live date" : ld.display;
-    const liveIcon= ld.status==="evergreen"?"🌲":"📅";
-    const el=document.createElement("div");
-    el.className="card";
-    const hasNotes=c.notes&&c.notes.trim();
-    el.innerHTML=`
-      <div class="cardtop"><span class="live ${liveCls}">${liveIcon} ${esc(liveTxt)}</span></div>
-      <h3>${esc(c.name)}${hasNotes?'<span class="noteflag" title="Has notes">📝</span>':''}</h3>
-      <div class="offer">${esc(offer)||"<span style='opacity:.5'>No offer summary</span>"}</div>
-      <div class="host">Host: <b>${esc(host)}</b></div>
-      <div class="bar"><div style="width:${p.pct}%"></div></div>
-      <div class="pct"><span>${p.done}/${p.total} tasks done</span><span>${p.pct}%</span></div>`;
-    el.onclick=()=>openDetail(i);
-    grid.appendChild(el);
+    grid.appendChild(buildCard(c,i));
+  });
+}
+function renderArchived(){
+  const view=document.getElementById("archivedView");
+  const arch=state.clients.map((c,i)=>({c,i})).filter(x=>x.c.archived);
+  if(!arch.length){ view.innerHTML='<div class="empty">No archived projects.</div>'; return; }
+  view.innerHTML='<div class="grid" id="archGrid"></div>';
+  const g=view.querySelector("#archGrid");
+  arch.forEach(({c,i})=>{
+    const card=buildCard(c,i);
+    const un=document.createElement("button");
+    un.className="btn btn-ghost unarch-btn"; un.textContent="↩ Unarchive";
+    un.onclick=ev=>{ ev.stopPropagation(); c.archived=false; save(); renderArchived(); toast("Project unarchived"); };
+    card.appendChild(un);
+    g.appendChild(card);
   });
 }
 
@@ -534,8 +647,9 @@ function showView(v){
   document.getElementById("listView").classList.toggle("hidden",v!=="clients");
   document.getElementById("calendarView").classList.toggle("hidden",v!=="calendar");
   document.getElementById("tasksView").classList.toggle("hidden",v!=="tasks");
+  document.getElementById("archivedView").classList.toggle("hidden",v!=="archived");
   document.querySelectorAll(".navbtn").forEach(b=>b.classList.toggle("active",b.dataset.view===v));
-  if(v==="clients") renderList(); else if(v==="calendar") renderCalendar(); else renderTasks();
+  if(v==="clients") renderList(); else if(v==="calendar") renderCalendar(); else if(v==="tasks") renderTasks(); else renderArchived();
   window.scrollTo(0,0);
 }
 
@@ -546,6 +660,7 @@ function openDetail(i){
   document.getElementById("listView").classList.add("hidden");
   document.getElementById("calendarView").classList.add("hidden");
   document.getElementById("tasksView").classList.add("hidden");
+  document.getElementById("archivedView").classList.add("hidden");
   document.getElementById("detailView").classList.remove("hidden");
   window.scrollTo(0,0);
   renderDetail();
@@ -557,6 +672,13 @@ function renderDetail(){
   const p=progress(c);
   document.getElementById("detailPct").textContent=`${p.done}/${p.total} tasks · ${p.pct}%`;
   refreshLiveDisplay();
+  const st=c.status||"In Progress";
+  const stSel=document.getElementById("detailStatus");
+  stSel.innerHTML=STATUSES.map(s=>`<option ${s===st?"selected":""}>${s}</option>`).join("");
+  stSel.className="status-select "+(STATUS_CLS[st]||"prog");
+  stSel.onchange=e=>{ c.status=e.target.value; stSel.className="status-select "+(STATUS_CLS[c.status]||"prog"); save(); flash(); };
+  document.getElementById("archivedBanner").classList.toggle("hidden",!c.archived);
+  document.getElementById("archiveBtn").textContent= c.archived?"Unarchive project":"Archive project";
   const offerEl=document.getElementById("detailOffer");
   offerEl.value=c.fields[KEY_FIELDS.offer]||"";
   offerEl.onchange=e=>{ c.fields[KEY_FIELDS.offer]=e.target.value; save(); syncBodyField(KEY_FIELDS.offer,e.target.value); flash(); };
@@ -612,19 +734,10 @@ function buildField(f,c){
   fEl.className="field";
   const dep=DEPENDS[f.name];
   if(dep){ fEl.dataset.depOf=dep; if(c.fields[dep]!==true) fEl.classList.add("hidden"); }
-  // Live date: a calendar (date + time) picker, with an Evergreen toggle.
+  // Live date: date + PM-hour, or Daily Automated, or Evergreen.
   if(f.name===KEY_FIELDS.live){
-    const cur=String(val||"");
-    const isEver=/^evergreen$/i.test(cur);
-    const isISO=/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/.test(cur);
-    const inputVal= isISO ? (cur.length===10?cur+"T00:00":cur).slice(0,16) : "";
-    const hint= (!isISO && !isEver && cur && !/\btbd\b/i.test(cur)) ? `<div class="legacy-hint">was: ${esc(cur)}</div>` : "";
-    fEl.innerHTML=`<div class="fname">${esc(f.name)}</div><div class="fval live-field">
-      <input type="datetime-local" class="text dt" value="${inputVal}" ${isEver?"disabled":""}>${hint}
-      <label class="ever-toggle"><input type="checkbox" class="ever" ${isEver?"checked":""}> 🌲 Evergreen webinar (no fixed date)</label></div>`;
-    const dt=fEl.querySelector("input.dt"), ev=fEl.querySelector("input.ever");
-    dt.onchange=e=>{ c.fields[f.name]=e.target.value; save(); refreshLiveDisplay(); const h=fEl.querySelector(".legacy-hint"); if(h)h.remove(); flash(); };
-    ev.onchange=e=>{ if(e.target.checked){ c.fields[f.name]="EVERGREEN"; dt.value=""; dt.disabled=true; } else { c.fields[f.name]=""; dt.disabled=false; } save(); refreshLiveDisplay(); flash(); };
+    fEl.innerHTML=`<div class="fname">${esc(f.name)}</div><div class="fval"></div>`;
+    attachLiveEditor(fEl.querySelector(".fval"), c, ()=>{ refreshLiveDisplay(); flash(); });
     return fEl;
   }
   let valHtml;
@@ -717,17 +830,16 @@ function refreshProgress(){
 function refreshLiveDisplay(){
   const c=state.clients[activeIdx]; if(!c)return;
   const ld=parseLiveDate(c.fields[KEY_FIELDS.live]);
-  const cls= ld.status==="tbd"?"tbd" : ld.status==="unset"?"unset" : ld.status==="evergreen"?"evergreen" : "";
+  const cls= ld.status==="tbd"?"tbd" : ld.status==="unset"?"unset" : ld.status==="evergreen"?"evergreen" : ld.status==="daily"?"daily" : "";
   const txt= ld.status==="unset"?"Set live date" : ld.display;
-  const icon= ld.status==="evergreen"?"🌲":"📅";
-  const cur=String(c.fields[KEY_FIELDS.live]||"");
-  const isISO=/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/.test(cur);
-  const inputVal= isISO ? (cur.length===10?cur+"T00:00":cur).slice(0,16) : "";
+  const icon= ld.status==="evergreen"?"🌲" : ld.status==="daily"?"🔁" : "📅";
   const pill=document.getElementById("detailPill");
-  pill.innerHTML=`<label class="live live-edit ${cls}" title="Click to change">${icon} <span>${esc(txt)}</span><input type="datetime-local" value="${inputVal}"></label>`;
-  const inp=pill.querySelector("input");
-  inp.onclick=()=>{ try{inp.showPicker();}catch(e){} };
-  inp.onchange=e=>{ c.fields[KEY_FIELDS.live]=e.target.value; save(); refreshLiveDisplay(); syncBodyField(KEY_FIELDS.live,e.target.value); flash(); };
+  pill.innerHTML=`<button class="live live-edit ${cls}" title="Click to change">${icon} ${esc(txt)}</button>`;
+  pill.querySelector("button").onclick=()=>openLivePopover(pill.querySelector("button"), c, ()=>{
+    refreshLiveDisplay();
+    document.querySelectorAll("#detailView .live-editor").forEach(b=>attachLiveEditor(b,c,()=>{refreshLiveDisplay();flash();}));
+    flash();
+  });
 }
 // Keep the matching field input in the section body in sync after a header edit.
 function syncBodyField(name,val){
@@ -745,11 +857,13 @@ function backToList(){
 let calMonth=(function(){const n=new Date();return {y:n.getFullYear(),m:n.getMonth()};})();
 function renderCalendar(){
   const view=document.getElementById("calendarView");
-  const dated=[], evergreen=[], tbd=[];
+  const dated=[], evergreen=[], daily=[], tbd=[];
   state.clients.forEach((c,i)=>{
+    if(c.archived) return;
     const ld=parseLiveDate(c.fields[KEY_FIELDS.live]);
     if(ld.status==="scheduled") dated.push({c,i,d:new Date(ld.iso.length===10?ld.iso+"T00:00":ld.iso)});
     else if(ld.status==="evergreen") evergreen.push({c,i});
+    else if(ld.status==="daily") daily.push({c,i,disp:ld.display});
     else tbd.push({c,i});
   });
   const monthName=new Date(calMonth.y,calMonth.m,1).toLocaleDateString(undefined,{month:"long",year:"numeric"});
@@ -766,6 +880,7 @@ function renderCalendar(){
     const todayCls= isThisMonth && day===today.getDate() ? " today":"";
     cells+=`<div class="cal-cell${todayCls}"><div class="cal-date">${day}</div>${evHtml}</div>`;
   }
+  const dailyHtml= daily.length? `<div class="grp"><h4>🔁 Daily automated</h4>${daily.map(x=>`<span class="cal-chip" data-i="${x.i}">${esc(x.c.name)} <span style="color:var(--muted)">· ${esc(x.disp.replace("Daily · ",""))}</span></span>`).join("")}</div>`:"";
   const evergreenHtml= evergreen.length? `<div class="grp"><h4>🌲 Evergreen</h4>${evergreen.map(x=>`<span class="cal-chip" data-i="${x.i}">${esc(x.c.name)}</span>`).join("")}</div>`:"";
   const tbdHtml= tbd.length? `<div class="grp"><h4>No date set</h4>${tbd.map(x=>`<span class="cal-chip" data-i="${x.i}">${esc(x.c.name)}</span>`).join("")}</div>`:"";
   view.innerHTML=`
@@ -776,7 +891,7 @@ function renderCalendar(){
       <button class="btn btn-ghost" id="calToday">Today</button>
     </div>
     <div class="cal-grid">${dow.map(d=>`<div class="cal-dow">${d}</div>`).join("")}${cells}</div>
-    ${(evergreenHtml||tbdHtml)?`<div class="cal-extra">${evergreenHtml}${tbdHtml}</div>`:""}`;
+    ${(dailyHtml||evergreenHtml||tbdHtml)?`<div class="cal-extra">${dailyHtml}${evergreenHtml}${tbdHtml}</div>`:""}`;
   view.querySelector("#calPrev").onclick=()=>{ calMonth.m--; if(calMonth.m<0){calMonth.m=11;calMonth.y--;} renderCalendar(); };
   view.querySelector("#calNext").onclick=()=>{ calMonth.m++; if(calMonth.m>11){calMonth.m=0;calMonth.y++;} renderCalendar(); };
   view.querySelector("#calToday").onclick=()=>{ const n=new Date(); calMonth={y:n.getFullYear(),m:n.getMonth()}; renderCalendar(); };
@@ -784,31 +899,47 @@ function renderCalendar(){
 }
 
 // ---- tasks view: unchecked tasks for clients that have a launch date set ----
+const tasksCollapsed=new Set();
 function renderTasks(){
   const view=document.getElementById("tasksView");
   const items=state.clients.map((c,i)=>({c,i,ld:parseLiveDate(c.fields[KEY_FIELDS.live])}))
-    .filter(x=>x.ld.status==="scheduled")
+    .filter(x=>x.ld.status==="scheduled" && !x.c.archived)
     .sort((a,b)=>a.ld.sortKey-b.ld.sortKey);
-  if(!items.length){ view.innerHTML='<div class="empty">No clients have a launch date set yet.</div>'; return; }
-  let html="";
+  const todayStr=new Date().toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"});
+  let html=`<div class="daily-note">
+    <div class="dn-head">📓 Daily note <span class="dn-date">${esc(todayStr)}</span></div>
+    <textarea id="dailyNoteArea" placeholder="Today's focus, blockers, follow-ups…">${esc(state.dailyNote||"")}</textarea>
+  </div>`;
+  if(!items.length){ html+='<div class="empty">No clients have a launch date set yet.</div>'; }
   items.forEach(({c,i,ld})=>{
     const groups=[];
     state.schema.forEach(s=>{ if(OPTIONAL_SECTIONS.has(s.section)) return; const ts=s.fields.filter(f=>f.type==="bool" && c.fields[f.name]!==true); if(ts.length) groups.push({section:s.section,tasks:ts}); });
     const remaining=groups.reduce((n,g)=>n+g.tasks.length,0);
-    html+=`<div class="task-client">
-      <div class="tc-head" data-i="${i}">
-        <span class="live">📅 ${esc(ld.display)}</span>
-        <h3>${esc(c.name)}</h3>
-        <span class="tc-count ${remaining?"":"done"}">${remaining? remaining+" left":"✓ All done"}</span>
-      </div>`;
+    const collapsed=tasksCollapsed.has(i);
+    let body="";
     groups.forEach(g=>{
-      html+=`<div class="tc-sec">${esc(g.section)}</div>`;
-      g.tasks.forEach(f=>{ html+=`<label class="check task-item" data-ci="${i}" data-field="${esc(f.name)}"><input type="checkbox"><span class="box"></span><span class="ctext">${esc(f.name.replace(/\?\s*$/,""))}</span></label>`; });
+      body+=`<div class="tc-sec">${esc(g.section)}</div>`;
+      g.tasks.forEach(f=>{ body+=`<label class="check task-item" data-ci="${i}" data-field="${esc(f.name)}"><input type="checkbox"><span class="box"></span><span class="ctext">${esc(f.name.replace(/\?\s*$/,""))}</span></label>`; });
     });
-    html+=`</div>`;
+    html+=`<div class="task-client${collapsed?" collapsed":""}">
+      <div class="tc-head" data-toggle="${i}">
+        <span class="chev">▾</span>
+        <span class="live">📅 ${esc(ld.display)}</span>
+        <h3 class="tc-name" data-open="${i}">${esc(c.name)}</h3>
+        <span class="tc-count ${remaining?"":"done"}">${remaining? remaining+" left":"✓ All done"}</span>
+      </div>
+      <div class="tc-body">${body}</div>
+    </div>`;
   });
   view.innerHTML=html;
-  view.querySelectorAll(".tc-head").forEach(h=>h.onclick=()=>openDetail(+h.dataset.i));
+  const note=view.querySelector("#dailyNoteArea");
+  note.oninput=e=>{ state.dailyNote=e.target.value; save(); };
+  view.querySelectorAll(".tc-head").forEach(h=>h.onclick=e=>{
+    if(e.target.closest(".tc-name")) return;
+    const i=+h.dataset.toggle; if(tasksCollapsed.has(i)) tasksCollapsed.delete(i); else tasksCollapsed.add(i);
+    h.parentElement.classList.toggle("collapsed");
+  });
+  view.querySelectorAll(".tc-name").forEach(n=>n.onclick=e=>{ e.stopPropagation(); openDetail(+n.dataset.open); });
   view.querySelectorAll(".task-item input").forEach(inp=>{
     inp.onchange=e=>{ const lbl=e.target.closest(".task-item"); state.clients[+lbl.dataset.ci].fields[lbl.dataset.field]=true; save(); renderTasks(); };
   });
@@ -827,7 +958,7 @@ function closeAdd(){document.getElementById("addOverlay").classList.add("hidden"
 document.getElementById("addSave").onclick=()=>{
   const name=document.getElementById("newName").value.trim();
   if(!name){document.getElementById("newName").focus();return;}
-  const rec={name,fields:{}};
+  const rec={name,status:"In Progress",archived:false,fields:{}};
   state.schema.forEach(s=>s.fields.forEach(f=>{rec.fields[f.name]=f.type==="bool"?false:"";}));
   rec.fields[KEY_FIELDS.host]=document.getElementById("newHost").value.trim();
   rec.fields[KEY_FIELDS.offer]=document.getElementById("newOffer").value.trim();
@@ -838,6 +969,12 @@ document.getElementById("deleteBtn").onclick=()=>{
   if(confirm(`Delete "${c.name}"? This cannot be undone.`)){
     state.clients.splice(activeIdx,1); save(); backToList(); toast("Client deleted");
   }
+};
+document.getElementById("archiveBtn").onclick=()=>{
+  const c=state.clients[activeIdx]; if(!c)return;
+  c.archived=!c.archived; save();
+  toast(c.archived?"Project archived":"Project unarchived");
+  backToList();
 };
 document.getElementById("backBtn").onclick=backToList;
 
