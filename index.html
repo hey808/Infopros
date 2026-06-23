@@ -165,6 +165,46 @@
   .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--green);color:#06281c;padding:10px 18px;border-radius:10px;font-weight:600;z-index:60;opacity:0;transition:.3s;pointer-events:none}
   .toast.show{opacity:1}
   .empty{text-align:center;color:var(--muted);padding:60px 20px}
+  /* layout with sidebar */
+  .app{display:flex;align-items:flex-start;max-width:1400px;margin:0 auto}
+  .sidebar{position:sticky;top:62px;flex-shrink:0;width:190px;padding:22px 14px;display:flex;flex-direction:column;gap:6px}
+  .navbtn{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:transparent;color:var(--muted);border:1px solid transparent;padding:10px 12px;border-radius:9px;font-size:14px}
+  .navbtn span{font-size:15px;opacity:.85}
+  .navbtn:hover{background:var(--panel2);color:var(--txt)}
+  .navbtn.active{background:var(--panel);color:var(--txt);border-color:var(--line);font-weight:600}
+  .app > main{flex:1;min-width:0}
+  @media(max-width:760px){.app{flex-direction:column}.sidebar{flex-direction:row;width:auto;position:static;padding:14px 22px 0}}
+  /* calendar */
+  .cal-head{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+  .cal-head h2{margin:0;font-size:20px;min-width:190px}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+  .cal-dow{font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);text-align:center;padding:4px 0}
+  .cal-cell{min-height:96px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 7px;display:flex;flex-direction:column;gap:4px;overflow:hidden}
+  .cal-cell.empty{background:transparent;border-color:transparent}
+  .cal-cell.today{border-color:var(--accent)}
+  .cal-date{font-size:12px;color:var(--muted);font-weight:600}
+  .cal-cell.today .cal-date{color:var(--accent)}
+  .cal-ev{font-size:11.5px;background:var(--greenbg);color:var(--green);border:1px solid #1c3a2e;border-radius:6px;padding:2px 6px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
+  .cal-ev .evt{color:var(--muted);font-weight:600}
+  .cal-ev:hover{filter:brightness(1.25)}
+  .cal-extra{margin-top:22px;display:flex;flex-wrap:wrap;gap:20px}
+  .cal-extra .grp h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+  .cal-chip{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:4px 11px;font-size:12.5px;margin:0 6px 6px 0;cursor:pointer}
+  .cal-chip:hover{border-color:var(--accent)}
+  /* tasks view */
+  .task-client{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:6px 16px 12px;margin-bottom:16px;max-width:760px}
+  .tc-head{display:flex;align-items:center;gap:12px;padding:12px 2px;cursor:pointer;border-bottom:1px solid var(--line);margin-bottom:6px}
+  .tc-head h3{margin:0;font-size:16px;flex:1}
+  .tc-head:hover h3{color:#fff}
+  .tc-count{font-size:12px;font-weight:600;color:var(--amber)}
+  .tc-count.done{color:var(--green)}
+  .tc-sec{font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin:10px 2px 2px}
+  .task-item{padding:6px 8px}
+  /* evergreen */
+  .live.evergreen{color:#5eead4;border-color:#1c3a39}
+  .ever-toggle{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted);cursor:pointer;user-select:none;margin-top:8px}
+  .live-field{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+  .live-field input.dt:disabled{opacity:.4;cursor:not-allowed}
 </style>
 </head>
 <body>
@@ -176,12 +216,21 @@
   <button class="btn btn-ghost" id="menuBtn">⋯</button>
 </header>
 
+<div class="app">
+<nav class="sidebar">
+  <button class="navbtn active" data-view="clients"><span>▦</span> Clients</button>
+  <button class="navbtn" data-view="tasks"><span>✓</span> Tasks</button>
+  <button class="navbtn" data-view="calendar"><span>▤</span> Calendar</button>
+</nav>
 <main>
   <div id="listView">
-    <div class="stats" id="stats"></div>
     <div class="grid" id="grid"></div>
     <div class="empty hidden" id="emptyList">No clients match your search.</div>
   </div>
+
+  <div id="calendarView" class="hidden"></div>
+
+  <div id="tasksView" class="hidden"></div>
 
   <div id="detailView" class="hidden">
     <button class="btn btn-ghost" id="backBtn">← All clients</button>
@@ -203,6 +252,7 @@
     </div>
   </div>
 </main>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -314,6 +364,7 @@ const DAY_TOKENS=[["daily",0],["mon",1],["tue",2],["wed",3],["thu",4],["fri",5],
 function parseLiveDate(raw){
   const s=(raw==null?"":String(raw)).trim();
   if(!s) return {display:"", sortKey:9e12, status:"unset"};
+  if(/^evergreen$/i.test(s)) return {display:"Evergreen", sortKey:7e12, status:"evergreen"};
   if(/\btbd\b/i.test(s)) return {display:"TBD", sortKey:8e12, status:"tbd"};
   if(/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/.test(s)){
     const hasTime=s.includes("T");
@@ -433,19 +484,7 @@ function migrate(){
 }
 
 // ---- list view ----
-function renderStats(){
-  const total=state.clients.length;
-  let ready=0,inprog=0,avg=0;
-  state.clients.forEach(c=>{const p=progress(c);avg+=p.pct;const s=statusOf(c);if(s.cls==="live")ready++;else if(s.cls==="prog")inprog++;});
-  avg= total?Math.round(avg/total):0;
-  document.getElementById("stats").innerHTML=`
-    <div class="stat"><div class="num">${total}</div><div class="lbl">Total clients</div></div>
-    <div class="stat"><div class="num" style="color:var(--green)">${ready}</div><div class="lbl">Ready to launch</div></div>
-    <div class="stat"><div class="num" style="color:var(--amber)">${inprog}</div><div class="lbl">In progress</div></div>
-    <div class="stat"><div class="num">${avg}%</div><div class="lbl">Avg. completion</div></div>`;
-}
 function renderList(){
-  renderStats();
   const q=document.getElementById("search").value.trim().toLowerCase();
   const grid=document.getElementById("grid");
   grid.innerHTML="";
@@ -464,18 +503,19 @@ function renderList(){
     const host=c.fields[KEY_FIELDS.host]||"—";
     const offer=c.fields[KEY_FIELDS.offer]||"";
     const ld=parseLiveDate(c.fields[KEY_FIELDS.live]);
-    // Divider between clients with a launch date set and those without.
-    if(ld.status!=="scheduled" && !dividerDone && grid.children.length>0){
+    // Divider between clients with a launch plan (date or evergreen) and those without.
+    if((ld.status==="tbd"||ld.status==="unset"||ld.status==="legacy") && !dividerDone && grid.children.length>0){
       const dv=document.createElement("div"); dv.className="grid-divider"; dv.innerHTML="<span>No launch date set</span>";
       grid.appendChild(dv); dividerDone=true;
     }
-    const liveCls= ld.status==="tbd"?"tbd" : ld.status==="unset"?"unset" : "";
+    const liveCls= ld.status==="tbd"?"tbd" : ld.status==="unset"?"unset" : ld.status==="evergreen"?"evergreen" : "";
     const liveTxt= ld.status==="unset"?"No live date" : ld.display;
+    const liveIcon= ld.status==="evergreen"?"🌲":"📅";
     const el=document.createElement("div");
     el.className="card";
     const hasNotes=c.notes&&c.notes.trim();
     el.innerHTML=`
-      <div class="cardtop"><span class="live ${liveCls}">📅 ${esc(liveTxt)}</span></div>
+      <div class="cardtop"><span class="live ${liveCls}">${liveIcon} ${esc(liveTxt)}</span></div>
       <h3>${esc(c.name)}${hasNotes?'<span class="noteflag" title="Has notes">📝</span>':''}</h3>
       <div class="offer">${esc(offer)||"<span style='opacity:.5'>No offer summary</span>"}</div>
       <div class="host">Host: <b>${esc(host)}</b></div>
@@ -486,11 +526,26 @@ function renderList(){
   });
 }
 
+// ---- view switching (Clients list / Calendar) ----
+let currentView="clients";
+function showView(v){
+  currentView=v;
+  document.getElementById("detailView").classList.add("hidden");
+  document.getElementById("listView").classList.toggle("hidden",v!=="clients");
+  document.getElementById("calendarView").classList.toggle("hidden",v!=="calendar");
+  document.getElementById("tasksView").classList.toggle("hidden",v!=="tasks");
+  document.querySelectorAll(".navbtn").forEach(b=>b.classList.toggle("active",b.dataset.view===v));
+  if(v==="clients") renderList(); else if(v==="calendar") renderCalendar(); else renderTasks();
+  window.scrollTo(0,0);
+}
+
 // ---- detail view ----
 let activeIdx=null;
 function openDetail(i){
   activeIdx=i;
   document.getElementById("listView").classList.add("hidden");
+  document.getElementById("calendarView").classList.add("hidden");
+  document.getElementById("tasksView").classList.add("hidden");
   document.getElementById("detailView").classList.remove("hidden");
   window.scrollTo(0,0);
   renderDetail();
@@ -557,14 +612,19 @@ function buildField(f,c){
   fEl.className="field";
   const dep=DEPENDS[f.name];
   if(dep){ fEl.dataset.depOf=dep; if(c.fields[dep]!==true) fEl.classList.add("hidden"); }
-  // Live date: a calendar (date + time) picker.
+  // Live date: a calendar (date + time) picker, with an Evergreen toggle.
   if(f.name===KEY_FIELDS.live){
     const cur=String(val||"");
+    const isEver=/^evergreen$/i.test(cur);
     const isISO=/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/.test(cur);
     const inputVal= isISO ? (cur.length===10?cur+"T00:00":cur).slice(0,16) : "";
-    const hint= (!isISO && cur && !/\btbd\b/i.test(cur)) ? `<div class="legacy-hint">was: ${esc(cur)}</div>` : "";
-    fEl.innerHTML=`<div class="fname">${esc(f.name)}</div><div class="fval"><input type="datetime-local" class="text dt" value="${inputVal}">${hint}</div>`;
-    fEl.querySelector("input").onchange=e=>{ c.fields[f.name]=e.target.value; save(); refreshLiveDisplay(); const h=fEl.querySelector(".legacy-hint"); if(h)h.remove(); flash(); };
+    const hint= (!isISO && !isEver && cur && !/\btbd\b/i.test(cur)) ? `<div class="legacy-hint">was: ${esc(cur)}</div>` : "";
+    fEl.innerHTML=`<div class="fname">${esc(f.name)}</div><div class="fval live-field">
+      <input type="datetime-local" class="text dt" value="${inputVal}" ${isEver?"disabled":""}>${hint}
+      <label class="ever-toggle"><input type="checkbox" class="ever" ${isEver?"checked":""}> 🌲 Evergreen webinar (no fixed date)</label></div>`;
+    const dt=fEl.querySelector("input.dt"), ev=fEl.querySelector("input.ever");
+    dt.onchange=e=>{ c.fields[f.name]=e.target.value; save(); refreshLiveDisplay(); const h=fEl.querySelector(".legacy-hint"); if(h)h.remove(); flash(); };
+    ev.onchange=e=>{ if(e.target.checked){ c.fields[f.name]="EVERGREEN"; dt.value=""; dt.disabled=true; } else { c.fields[f.name]=""; dt.disabled=false; } save(); refreshLiveDisplay(); flash(); };
     return fEl;
   }
   let valHtml;
@@ -657,13 +717,14 @@ function refreshProgress(){
 function refreshLiveDisplay(){
   const c=state.clients[activeIdx]; if(!c)return;
   const ld=parseLiveDate(c.fields[KEY_FIELDS.live]);
-  const cls= ld.status==="tbd"?"tbd" : ld.status==="unset"?"unset" : "";
+  const cls= ld.status==="tbd"?"tbd" : ld.status==="unset"?"unset" : ld.status==="evergreen"?"evergreen" : "";
   const txt= ld.status==="unset"?"Set live date" : ld.display;
+  const icon= ld.status==="evergreen"?"🌲":"📅";
   const cur=String(c.fields[KEY_FIELDS.live]||"");
   const isISO=/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/.test(cur);
   const inputVal= isISO ? (cur.length===10?cur+"T00:00":cur).slice(0,16) : "";
   const pill=document.getElementById("detailPill");
-  pill.innerHTML=`<label class="live live-edit ${cls}" title="Click to change">📅 <span>${esc(txt)}</span><input type="datetime-local" value="${inputVal}"></label>`;
+  pill.innerHTML=`<label class="live live-edit ${cls}" title="Click to change">${icon} <span>${esc(txt)}</span><input type="datetime-local" value="${inputVal}"></label>`;
   const inp=pill.querySelector("input");
   inp.onclick=()=>{ try{inp.showPicker();}catch(e){} };
   inp.onchange=e=>{ c.fields[KEY_FIELDS.live]=e.target.value; save(); refreshLiveDisplay(); syncBodyField(KEY_FIELDS.live,e.target.value); flash(); };
@@ -676,9 +737,81 @@ function syncBodyField(name,val){
   });
 }
 function backToList(){
-  document.getElementById("detailView").classList.add("hidden");
-  document.getElementById("listView").classList.remove("hidden");
-  activeIdx=null; renderList();
+  activeIdx=null;
+  showView(currentView);
+}
+
+// ---- calendar view ----
+let calMonth=(function(){const n=new Date();return {y:n.getFullYear(),m:n.getMonth()};})();
+function renderCalendar(){
+  const view=document.getElementById("calendarView");
+  const dated=[], evergreen=[], tbd=[];
+  state.clients.forEach((c,i)=>{
+    const ld=parseLiveDate(c.fields[KEY_FIELDS.live]);
+    if(ld.status==="scheduled") dated.push({c,i,d:new Date(ld.iso.length===10?ld.iso+"T00:00":ld.iso)});
+    else if(ld.status==="evergreen") evergreen.push({c,i});
+    else tbd.push({c,i});
+  });
+  const monthName=new Date(calMonth.y,calMonth.m,1).toLocaleDateString(undefined,{month:"long",year:"numeric"});
+  const first=new Date(calMonth.y,calMonth.m,1);
+  const startDow=first.getDay();
+  const daysInMonth=new Date(calMonth.y,calMonth.m+1,0).getDate();
+  const today=new Date(); const isThisMonth= today.getFullYear()===calMonth.y && today.getMonth()===calMonth.m;
+  const dow=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  let cells="";
+  for(let i=0;i<startDow;i++) cells+=`<div class="cal-cell empty"></div>`;
+  for(let day=1;day<=daysInMonth;day++){
+    const evs=dated.filter(x=>x.d.getFullYear()===calMonth.y && x.d.getMonth()===calMonth.m && x.d.getDate()===day);
+    const evHtml=evs.map(x=>{const t=x.d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});return `<div class="cal-ev" data-i="${x.i}" title="${esc(x.c.name)} · ${t}"><span class="evt">${t}</span> ${esc(x.c.name)}</div>`;}).join("");
+    const todayCls= isThisMonth && day===today.getDate() ? " today":"";
+    cells+=`<div class="cal-cell${todayCls}"><div class="cal-date">${day}</div>${evHtml}</div>`;
+  }
+  const evergreenHtml= evergreen.length? `<div class="grp"><h4>🌲 Evergreen</h4>${evergreen.map(x=>`<span class="cal-chip" data-i="${x.i}">${esc(x.c.name)}</span>`).join("")}</div>`:"";
+  const tbdHtml= tbd.length? `<div class="grp"><h4>No date set</h4>${tbd.map(x=>`<span class="cal-chip" data-i="${x.i}">${esc(x.c.name)}</span>`).join("")}</div>`:"";
+  view.innerHTML=`
+    <div class="cal-head">
+      <button class="btn" id="calPrev">‹</button>
+      <h2>${monthName}</h2>
+      <button class="btn" id="calNext">›</button>
+      <button class="btn btn-ghost" id="calToday">Today</button>
+    </div>
+    <div class="cal-grid">${dow.map(d=>`<div class="cal-dow">${d}</div>`).join("")}${cells}</div>
+    ${(evergreenHtml||tbdHtml)?`<div class="cal-extra">${evergreenHtml}${tbdHtml}</div>`:""}`;
+  view.querySelector("#calPrev").onclick=()=>{ calMonth.m--; if(calMonth.m<0){calMonth.m=11;calMonth.y--;} renderCalendar(); };
+  view.querySelector("#calNext").onclick=()=>{ calMonth.m++; if(calMonth.m>11){calMonth.m=0;calMonth.y++;} renderCalendar(); };
+  view.querySelector("#calToday").onclick=()=>{ const n=new Date(); calMonth={y:n.getFullYear(),m:n.getMonth()}; renderCalendar(); };
+  view.querySelectorAll("[data-i]").forEach(el=>el.onclick=()=>openDetail(+el.dataset.i));
+}
+
+// ---- tasks view: unchecked tasks for clients that have a launch date set ----
+function renderTasks(){
+  const view=document.getElementById("tasksView");
+  const items=state.clients.map((c,i)=>({c,i,ld:parseLiveDate(c.fields[KEY_FIELDS.live])}))
+    .filter(x=>x.ld.status==="scheduled")
+    .sort((a,b)=>a.ld.sortKey-b.ld.sortKey);
+  if(!items.length){ view.innerHTML='<div class="empty">No clients have a launch date set yet.</div>'; return; }
+  let html="";
+  items.forEach(({c,i,ld})=>{
+    const groups=[];
+    state.schema.forEach(s=>{ if(OPTIONAL_SECTIONS.has(s.section)) return; const ts=s.fields.filter(f=>f.type==="bool" && c.fields[f.name]!==true); if(ts.length) groups.push({section:s.section,tasks:ts}); });
+    const remaining=groups.reduce((n,g)=>n+g.tasks.length,0);
+    html+=`<div class="task-client">
+      <div class="tc-head" data-i="${i}">
+        <span class="live">📅 ${esc(ld.display)}</span>
+        <h3>${esc(c.name)}</h3>
+        <span class="tc-count ${remaining?"":"done"}">${remaining? remaining+" left":"✓ All done"}</span>
+      </div>`;
+    groups.forEach(g=>{
+      html+=`<div class="tc-sec">${esc(g.section)}</div>`;
+      g.tasks.forEach(f=>{ html+=`<label class="check task-item" data-ci="${i}" data-field="${esc(f.name)}"><input type="checkbox"><span class="box"></span><span class="ctext">${esc(f.name.replace(/\?\s*$/,""))}</span></label>`; });
+    });
+    html+=`</div>`;
+  });
+  view.innerHTML=html;
+  view.querySelectorAll(".tc-head").forEach(h=>h.onclick=()=>openDetail(+h.dataset.i));
+  view.querySelectorAll(".task-item input").forEach(inp=>{
+    inp.onchange=e=>{ const lbl=e.target.closest(".task-item"); state.clients[+lbl.dataset.ci].fields[lbl.dataset.field]=true; save(); renderTasks(); };
+  });
 }
 
 // ---- title edit ----
@@ -729,7 +862,8 @@ document.getElementById("resetBtn").onclick=()=>{
   }
 };
 
-document.getElementById("search").oninput=renderList;
+document.getElementById("search").oninput=()=>{ if(currentView!=="clients") showView("clients"); else renderList(); };
+document.querySelectorAll(".navbtn").forEach(b=>b.onclick=()=>showView(b.dataset.view));
 function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 
 migrate();
